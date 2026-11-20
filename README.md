@@ -1,240 +1,240 @@
 # SuperAgent PTC
 
-**English** | [Chinese](README.zh-CN.md)
+[![English](https://img.shields.io/badge/English-README-blue)](README.en.md) [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-%E5%BD%93%E5%89%8D-red)](README.md)
 
-[![npm version](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
-[![npm downloads](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
-[![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![npm 版本](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
+[![npm 下载量](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
+[![许可 MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-6f42c1)](https://github.com/deepseek-ai/deepseek-harness)
-[![tests](https://img.shields.io/badge/tests-176%2F176-brightgreen)](docs/VALIDATION.md)
+[![测试](https://img.shields.io/badge/tests-176%2F176-brightgreen)](docs/VALIDATION.md)
 
-> **Long-task supervision layer for DeepSeek Harness** — versioned anchors, bounded delegation, independent acceptance, evidence-gated release.
+> **DeepSeek Harness 的长任务监督层**——版本化锚点、有界委派、独立验收、证据放行。
 
-SuperAgent PTC turns "the agent says it is done" into "an independent reviewer proved it is done". It is a **preset-first** plugin: it adds a supervision plane on top of the native PTC / Agent / Goal / Teams runtime instead of building a second agent loop, task board or router.
-
-```
-You:  split this research into three items, accept each one, then write the summary
-PTC:  Run + Anchor  ->  Mandate per item  ->  standard Reviewer verifies independently
-      ->  gate passes  ->  super_snapshot returns revision and proof
-```
-
-![Layered architecture](docs/images/en/architecture-layers.png)
-
-## Contents
-
-- [Why](#why-superagent-ptc)
-- [Features](#features)
-- [Dual-layer architecture](#dual-layer-architecture)
-- [Supervision loop](#supervision-loop)
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Tools](#tools)
-- [Right panel](#right-panel)
-- [Evidence gates and boundaries](#evidence-gates-and-boundaries)
-- [Compatibility](#compatibility)
-- [Verification](#verification)
-- [FAQ](#faq)
-- [Development](#development)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
-
-## Why SuperAgent PTC
-
-Long tasks rarely fail because the model cannot write code. They fail because four things stay unconstrained:
-
-| Problem | Consequence | What SuperAgent PTC does |
-| --- | --- | --- |
-| The goal drifts across a long conversation | Half the work targets the wrong thing | **Versioned Anchor**: objective, DoD and obligations have versions; corrections explicitly invalidate affected work |
-| The agent declares itself done | "Done" without verification | `reported_done != accepted`: an independent Reviewer and an evidence gate must pass first |
-| Delegation has no boundary | Workers overreach or duplicate effort | **Mandate contract**: work item, write scope, model route and attempt count are frozen at prepare time |
-| Crash leaves an unknown state | You cannot tell what is trustworthy | **SnapshotProof + RunState v2**: write the native proof, then storage, then swap the live core |
-
-## Features
-
-- **Preset-first**: one agent preset (`SuperAgent PTC`) alongside Standard, Creative, PTC and Minimal; it does not change default models, permissions or other sessions.
-- **Seven supervision tools**: `super_run`, `super_anchor`, `super_mandate`, `super_evidence`, `super_review`, `super_route`, `super_snapshot`, all called through PTC `run_code` instead of adding new script tools.
-- **Native identity binding**: Worker and Reviewer are real native subagents; the Host wakes a bound Reviewer through native `sendMessage`, so the Lead can never play the Reviewer.
-- **Independent read-only review**: the Reviewer must use the native `standard` preset; the guard fails closed on writes and unknown shell operations, while `pwsh` read commands (including `$env:` reads) are classified by their actual arguments.
-- **Typed evidence gates**: evidence is `pass / fail / unknown` only; `unknown` never releases; build logs, unit tests and screenshots cannot replace runtime evidence.
-- **Failure budgets and recoverable audit**: the same fingerprint reaching its budget blocks the run; `super_run recover` increases the generation and keeps the full audit trail.
-- **Client visualization**: a right-side supervision panel and a composer entry over a read-only projection.
-- **No global side effects**: ordinary sessions get no `super_*` tools, no prompt section and no panel.
-
-### What it deliberately does not do
-
-| Not doing | Reason |
-| --- | --- |
-| Rebuilding an agent loop, task board or global router | Native Session, Agent, Goal and Teams remain the execution authority |
-| Providing an OS-level file permission sandbox | Write scopes are a coordination contract, not kernel isolation |
-| Automatic model downgrade | Only explicit, allowlisted, budgeted bounded failover is supported |
-| Treating `reported_done` as acceptance | Only an independent Reviewer plus the evidence gate produces `accepted` |
-
-## Dual-layer architecture
-
-**One-sentence positioning**: SuperAgent PTC layers a supervision state machine (`Run -> Anchor -> Mandate -> Evidence -> Decision`) on top of the native Agent/Session mechanism, binds native agent sessions into that chain by role (Lead / Worker / Reviewer), and treats the **native PTC event chain** (`run_code` calls and tool receipts) as the **evidence substrate** of the whole chain. The supervision layer never produces a second event stream.
-
-The supervision plane only answers "may this ship"; the execution plane only answers "what actually happened". Between them sits a single contract membrane: `super_*` tools are the only writer of state and evidence.
-
-![Dual-layer architecture](docs/images/en/architecture-dual.png)
-
-- **A Supervision plane**: the Lead maintains the Anchor and the obligation ledger; a Mandate freezes work item, write scope, route and attempt; evidence gates and budgets decide release.
-- **Contract membrane**: every state change must pass the `super_*` CAS check; there is no second write path between the planes.
-- **B Execution plane**: PTC `run_code` orchestrates host tools, native `subagent` creates Worker and Reviewer, and receipts come back as `reported_done` plus tool results.
-- **Shared foundation**: the native runtime supplies identity, lifecycle and proof; `storageDomain RunState v2` and `SnapshotProof` make the run recoverable.
-
-## Supervision loop
-
-![Supervision loop](docs/images/en/lifecycle.png)
+SuperAgent PTC 把“模型说自己做完了”变成“独立验收者证明它做完了”。它是 **preset-first** 插件：在原生 PTC / Agent / Goal / Teams 运行时之上叠加一层监管，不另造 Agent loop、任务板或路由器。
 
 ```text
-super_run create            # objective + definition of done + gate policy
-super_run plan              # work items / dependencies / obligations (open ledger)
-super_anchor                # versioned anchor; corrections invalidate affected work
-super_mandate prepare       # freeze work item, write scope, model route, attempt
-super_mandate bind          # bind the native Worker SessionId
-super_mandate bindReviewer  # bind a standard Reviewer and wake it natively
-super_evidence record       # typed, traceable evidence
-super_review evaluate       # gate evaluation
-super_review decide/release # release only when the gate passes
-super_snapshot              # read-only check of revision / generation / proof
+你：把这份调研拆成三项工作，逐个验收后再写总结
+PTC：Run + Anchor  →  逐项 Mandate 派给 Worker  →  standard Reviewer 独立核验
+     →  证据通过才放行  →  super_snapshot 返回可验证的 revision 与 proof
 ```
 
-## Install
+![分层架构](docs/images/zh/architecture-layers.png)
 
-Requires DSH `>=0.2.2-rc.3 <0.3.0-0` and Node `^22.19.0 || >=24`.
+## 目录
+
+- [为什么需要它](#为什么需要它)
+- [特性](#特性)
+- [双层架构](#双层架构)
+- [监督循环](#监督循环)
+- [安装](#安装)
+- [快速上手](#快速上手)
+- [工具](#工具)
+- [右栏面板](#右栏面板)
+- [证据门与边界](#证据门与边界)
+- [兼容性](#兼容性)
+- [验证](#验证)
+- [常见问题](#常见问题)
+- [开发](#开发)
+- [致谢](#致谢)
+- [许可](#许可)
+
+## 为什么需要它
+
+长任务失败通常不是“模型不会写”，而是四件事没有被约束：
+
+| 常见问题 | 后果 | SuperAgent PTC 的做法 |
+| --- | --- | --- |
+| 目标在长对话里漂移 | 做到一半换了题目 | **版本化 Anchor**：目标、完成定义与义务都有版本，纠正会显式失效旧工作 |
+| 模型自报完成 | “done” 却没有验证 | `reported_done ≠ accepted`，必须先过独立 Reviewer 与证据门 |
+| 委派没有边界 | Worker 越权或重复劳动 | **Mandate 委派合同**：工作项、写域、模型路由与 attempt 在 prepare 时冻结 |
+| 崩溃后状态不明 | 不知道哪里可信 | **SnapshotProof + RunState v2**：先写原生证明，再落存储，最后替换 live core |
+
+## 特性
+
+- **Preset-first**：与标准、创造、PTC、极简并列的一个 Agent 预设（`SuperAgent PTC`），不改默认模型、权限或其他会话。
+- **七项监管工具**：`super_run`、`super_anchor`、`super_mandate`、`super_evidence`、`super_review`、`super_route`、`super_snapshot`，全部通过 PTC 的 `run_code` 调用，不新增脚本工具。
+- **原生身份绑定**：Worker 与 Reviewer 都是真实原生子 Agent；Host 用原生 `sendMessage` 唤醒绑定的 Reviewer，Lead 无法自己扮演验收者。
+- **独立只读验收**：Reviewer 必须使用原生 `standard` 预设；守卫对写操作与未知 shell 一律 fail-closed，`pwsh` 的只读命令（含读取 `$env:`）按实际参数分类。
+- **分型证据门**：证据只有 `pass / fail / unknown` 三态；`unknown` 不放行；构建日志、单测与截图不能替代运行时证据。
+- **失败预算与可恢复审计**：同一指纹达到预算即阻塞；`super_run recover` 增加 generation 并保留完整审计链。
+- **客户端可视化**：右栏监管面板与 composer 入口，只读投影。
+- **零全局副作用**：普通会话没有 `super_*` 工具、没有提示词段落、没有面板。
+
+### 明确不做什么
+
+| 不做 | 原因 |
+| --- | --- |
+| 不重建 Agent loop、任务板或全局路由 | 原生 Session、Agent、Goal、Teams 才是执行权威 |
+| 不提供操作系统级文件权限沙箱 | 写域是协作契约，不是内核隔离 |
+| 不做自动模型降级 | 只支持显式、白名单、预算内的有界故障切换 |
+| 不把 `reported_done` 当作验收 | 只有独立 Reviewer 加证据门才产生 `accepted` |
+
+## 双层架构
+
+**一句话定位**：SuperAgent PTC 在宿主原生 Agent/Session 机制之上叠加一层监管状态机（`Run → Anchor → Mandate → Evidence → Decision`），把原生 agent 会话按角色（Lead / Worker / Reviewer）绑定进这条监管链；**PTC 的原生事件链**（`run_code` 调用与工具回执）**是整条链的证据底座**——监管层自己不产生第二套事件流。
+
+监管面（Control Plane）只回答“能不能放行”，执行面（Execution Plane）只回答“实际做了什么”，两者之间只有一条契约膜：`super_*` 工具是状态与证据的唯一写入口。
+
+![双层架构](docs/images/zh/architecture-dual.png)
+
+- **A 监督面**：Lead 维护 Anchor 与义务账本；Mandate 冻结工作项、写域、路由与 attempt；证据门与预算决定放行。
+- **契约膜**：任何状态变更都必须穿过 `super_*` 的 CAS 校验，双层之间没有第二套写路径。
+- **B 执行面**：PTC `run_code` 编排宿主工具、原生 `subagent` 创建 Worker 与 Reviewer，回执以 `reported_done` 与工具结果的形式返回。
+- **共同底座**：原生运行时提供身份、生命周期与证明；`storageDomain RunState v2` 与 `SnapshotProof` 让 Run 可恢复。
+
+## 监督循环
+
+![监督循环](docs/images/zh/lifecycle.png)
+
+```text
+super_run create            # 目标 + 完成定义 + 门禁策略
+super_run plan              # 工作项 / 依赖 / 义务（开放账本）
+super_anchor                # 版本化锚点；纠正会失效受影响的工作
+super_mandate prepare       # 冻结工作项、写域、模型路由、attempt
+super_mandate bind          # 绑定原生 Worker 的 SessionId
+super_mandate bindReviewer  # 绑定 standard Reviewer 并由 Host 原生唤醒
+super_evidence record       # 分型、可追溯的证据
+super_review evaluate       # 门禁评估
+super_review decide/release # 门禁通过才放行
+super_snapshot              # 只读核对 revision / generation / proof
+```
+
+## 安装
+
+要求 DSH `>=0.2.2-rc.3 <0.3.0-0`，Node `^22.19.0 || >=24`。
 
 ```bash
-# install from npm into the current profile
+# 从 npm 安装到当前 profile
 dsh plugin --profile desktop add dsh-superagent-ptc
 ```
 
-Restart DSH completely after installing, then create a session and pick **SuperAgent PTC** in the preset selector.
+安装后**完全退出并重新启动 DSH**，然后新建会话，在预设选择器中选择 **SuperAgent PTC**。
 
-### Install through the DSH plugin market index
+### 通过 DSH 插件市场索引安装
 
-In DSH -> Settings -> Plugins -> Discover, add this index URL and search for `SuperAgent PTC`:
+在 DSH → 设置 → 插件 → 发现 中添加下面的索引 URL，然后搜索 `SuperAgent PTC`：
 
 ```text
 https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/market-index.json
 ```
 
-The index passes the official `parseMarketIndex` validation and resolves to `dsh-superagent-ptc@0.1.3`.
+该索引已通过官方 `parseMarketIndex` 校验，解析为 `dsh-superagent-ptc@0.1.3`。
 
-### Local development install
+### 本地开发安装
 
 ```bash
 git clone https://github.com/BioAIEvolu/dsh-superagent-ptc.git
 dsh plugin --profile desktop add link:/absolute/path/to/dsh-superagent-ptc
 ```
 
-## Quick start
+## 快速上手
 
-1. Create a session and choose the **SuperAgent PTC** preset.
-2. Describe the objective and the definition of done, for example:
+1. 新建会话，选择 **SuperAgent PTC** 预设。
+2. 把目标与完成标准说清楚，例如：
 
 ```text
-Use SuperAgent PTC for a minimal supervision loop:
-super_run create a Run; plan two work items, W1 reads the README and lists 3 points, W2 depends on W1 and stays held this phase;
-let the Worker inherit super-agent and the Reviewer use agent_preset=standard;
-after prepare/bind/bindReviewer, the Reviewer records coverage evidence and runs evaluate/decide/release;
-finally call super_snapshot and report the real Run/WorkItem/Mandate/Evidence/Decision IDs plus revision/generation/proof.
+用 SuperAgent PTC 做最小监管闭环：
+super_run create 建 Run；plan 两个工作项，W1 读 README 并给 3 条要点，W2 依赖 W1 本阶段保持 held；
+Worker 继承 super-agent，Reviewer 使用 agent_preset=standard；
+prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evaluate/decide/release；
+最后 super_snapshot 报告真实 Run/WorkItem/Mandate/Evidence/Decision ID 与 revision/generation/proof。
 ```
 
-3. Click **Super Agent supervision** above the composer; the right panel shows the live run and audit timeline.
+3. 点击 composer 上方的 **Super Agent 监管**，右栏会显示实时 Run 与审计时间线。
 
-## Tools
+## 工具
 
-| Tool | Actions | Notes |
+| 工具 | 动作 | 说明 |
 | --- | --- | --- |
-| `super_run` | `create` `plan` `show` `recover` `complete` | Run lifecycle; `recover` increases the generation and re-reconciles |
-| `super_anchor` | `show` `apply` `history` | Versioned anchors; corrections explicitly invalidate affected work |
-| `super_mandate` | `prepare` `bind` `bindReviewer` `report` `show` | Delegation contract and native SessionId binding |
-| `super_evidence` | `record` `observe` `list` | Typed evidence with write-scope and source-role checks |
-| `super_review` | `evaluate` `decide` `release` | Independent acceptance and release |
-| `super_route` | `show` `set` `inspect` `switch` | Model policy for the current run with bounded failover |
-| `super_snapshot` | `{}` | Read-only check of Run / gate / proof / recovery |
+| `super_run` | `create` `plan` `show` `recover` `complete` | Run 生命周期；`recover` 增加 generation 并重新对账 |
+| `super_anchor` | `show` `apply` `history` | 版本化锚点；纠正会显式失效受影响的工作 |
+| `super_mandate` | `prepare` `bind` `bindReviewer` `report` `show` | 委派合同与原生 SessionId 绑定 |
+| `super_evidence` | `record` `observe` `list` | 分型证据，带写域与来源角色校验 |
+| `super_review` | `evaluate` `decide` `release` | 独立验收与放行 |
+| `super_route` | `show` `set` `inspect` `switch` | 当前 Run 的模型策略与有界故障切换 |
+| `super_snapshot` | `{}` | 只读核对 Run / 门禁 / proof / recovery |
 
-Every write action carries `expectedRevision` and `expectedGeneration`; conflicts are rejected instead of silently overwritten.
+每个写动作都带 `expectedRevision` 与 `expectedGeneration`；冲突会被拒绝，而不是静默覆盖。
 
-## Right panel
+## 右栏面板
 
-![Right panel](docs/images/en/panel-mockup.png)
+![右栏面板](docs/images/zh/panel-mockup.png)
 
-- The panel is a **read-only projection**: objective/Anchor, model policy and routing audit, work items, Mandate, evidence and gates, audit timeline, agenda/attempt.
-- It never writes state; only `super_*` tools can change state, through the Host CAS check.
-- The composer entry never blocks input and is invisible in ordinary sessions.
+- 面板是**只读投影**：目标/Anchor、模型策略与路由审计、工作项、Mandate、证据与门禁、审计时间线、议程与 attempt。
+- 面板不写状态；只有 `super_*` 工具能穿过 Host 的 CAS 校验修改状态。
+- composer 入口不阻塞输入，普通会话看不到它。
 
-## Evidence gates and boundaries
+## 证据门与边界
 
-| Rule | Behavior |
+| 规则 | 行为 |
 | --- | --- |
-| Three evidence states | Only `pass` may release; `fail` blocks; `unknown` is never treated as success |
-| Source roles | Evidence must come from an allowed role and write scope; evidence reused across items is marked stale |
-| Reviewer read-only | Writes, unknown shell commands and privilege escalation fail closed; read commands are classified by arguments |
-| Commit order | `SnapshotProof` -> `storageDomain` -> live core; any failed step aborts |
-| Recovery | `recover` increases the generation and old evidence is not reused; only the root Lead may clear quarantine |
-| Sandbox scope | This plugin does not provide an OS-level file sandbox; write scopes are a coordination contract |
-| Trust boundary | SnapshotProof relies on the native session log and does not defend against a malicious host or direct log tampering |
+| 证据三态 | 只有 `pass` 可能放行；`fail` 阻塞；`unknown` 绝不当作成功 |
+| 来源角色 | 证据必须来自允许的角色与写域；跨项复用的证据会被标为 stale |
+| Reviewer 只读 | 写操作、未知 shell、提权指令一律 fail-closed；只读命令按参数分类 |
+| 提交顺序 | `SnapshotProof` → `storageDomain` → live core；任一步失败即中止 |
+| 恢复 | `recover` 增加 generation，旧证据不复用；只有 root Lead 能处理 quarantine |
+| 沙箱范围 | 本插件不提供操作系统级文件沙箱；写域是协作契约 |
+| 信任边界 | SnapshotProof 依赖原生会话日志，不防御恶意宿主或直接篡改日志 |
 
-## Compatibility
+## 兼容性
 
-| Item | Value |
+| 项 | 值 |
 | --- | --- |
-| DSH | `>=0.2.2-rc.3 <0.3.0-0` (development baseline `0.2.2-rc.5`) |
+| DSH | `>=0.2.2-rc.3 <0.3.0-0`（开发基线 `0.2.2-rc.5`） |
 | Node | `^22.19.0 || >=24.0.0` |
-| Host peers | `dsh-session`, `dsh-storage-domain`, `dsh-tools`, `react` |
-| Client | web surface; `@deepseek-ai/dsh-client-connection`, `ui-conversation`, `ui-sidebar-right`, `ui-subagent` |
+| 宿主 peer | `dsh-session`、`dsh-storage-domain`、`dsh-tools`、`react` |
+| 客户端 | web surface；`@deepseek-ai/dsh-client-connection`、`ui-conversation`、`ui-sidebar-right`、`ui-subagent` |
 
-## Verification
+## 验证
 
-- Automation: **176 / 176 pass**; `typecheck` and `build` both exit 0.
-- Real desktop runs: two independent Electron sessions completed supervision loops, including recovery across generations, repeated Anchor revisions, independent Reviewer release and SnapshotProof agreement.
-- Fixes recorded: the Reviewer read-only guard once classified `pwsh "$env:NAME"` as a write; it now classifies by arguments and has regression tests.
-- Details: [docs/VALIDATION.md](docs/VALIDATION.md).
+- 自动化：**176 / 176 通过**；`typecheck` 与 `build` 均退出码 0。
+- 真实桌面运行：两个独立 Electron 会话完成监督闭环，包含跨代恢复、多次 Anchor 修订、独立 Reviewer 放行与 SnapshotProof 对齐。
+- 修复记录：Reviewer 只读守卫曾把 `pwsh "$env:NAME"` 判为写操作，现按参数分类并带回归测试。
+- 细节见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
-### Known unknown
+### 已知未知
 
-- Live provider-failure failover, budget-exhaustion blocking and `model.select` failure branches have never occurred on real hardware and remain unknown.
-- No OS-level file sandbox; no security boundary beyond session isolation.
+- 真实 provider 故障切换、预算耗尽阻塞、`model.select` 失败分支从未在实机发生，保持 unknown。
+- 不提供操作系统级文件沙箱，除会话隔离外没有额外安全边界。
 
-## FAQ
+## 常见问题
 
-**I selected the preset but there are no `super_*` tools.**
-Only `super-agent` sessions and a verified, bound read-only Reviewer receive the tools. Confirm the preset actually switched and restart DSH completely.
+**选了预设但没有 `super_*` 工具？**
+只有 `super-agent` 会话与已验证的只读 Reviewer 才有工具。确认预设确实切换，并完全重启 DSH。
 
-**The Reviewer cannot decide.**
-Read the gate response: `missingEvidence` / `staleEvidence` means you need new evidence; `REVIEWER_NOT_READONLY` means the Reviewer produced a write receipt and must be replaced by a fresh read-only Reviewer.
+**Reviewer 一直无法 decide？**
+看门禁返回：`missingEvidence` / `staleEvidence` 需要补新证据；`REVIEWER_NOT_READONLY` 说明 Reviewer 产生过写回执，需要换一个全新的只读 Reviewer。
 
-**How do I recover after a crash?**
-The root Lead calls `super_run recover`; the generation increases, old evidence is not reused, and new evidence must be collected in the new generation.
+**崩溃后怎么恢复？**
+root Lead 调用 `super_run recover`；generation 会增加，旧证据不复用，必须在新 generation 重新取证。
 
-**Can it act as a global router or automatic downgrade?**
-No. `super_route` only manages an explicit policy for the current run; there is no out-of-the-box global auto-router.
+**能当全局路由或自动降级用吗？**
+不能。`super_route` 只管理当前 Run 的显式策略，没有开箱即用的全局自动路由。
 
-## Development
+## 开发
 
 ```bash
 pnpm install
 pnpm typecheck && pnpm build && pnpm test
 ```
 
-- Layout: `src/core` (pure state machine, no Host dependency), `src/host` (tools, guard, routing, storage), `src/client` (panel and entry), `test/`.
-- Keep `typecheck`, `build` and `test` green; core state-machine changes need positive and negative cases.
-- Issues and PRs: https://github.com/BioAIEvolu/dsh-superagent-ptc/issues
+- 目录：`src/core`（纯状态机，无 Host 依赖）、`src/host`（工具、守卫、路由、存储）、`src/client`（面板与入口）、`test/`。
+- 保持 `typecheck`、`build`、`test` 全绿；核心状态机改动需要正反例。
+- Issue 与 PR：https://github.com/BioAIEvolu/dsh-superagent-ptc/issues
 
-## Acknowledgements
+## 致谢
 
-This plugin did not appear from thin air. It grew out of a real group discussion and source share on 2026-11-17:
+这个插件不是凭空想出来的，来自 2026-11-17 一次真实的群聊讨论与源码分享：
 
-- **CC**, a community member, shared the `dsh-plugin-antidrift` plugin source and real long-run experience (setting a long-term `/goal`, a single run lasting 30+ hours, ten agents writing in parallel). We only read the source for forensics — it was never installed, executed or copied — and its "anchor + delegation + audit" framing was an early inspiration.
-- **An** proposed deploying several instructions at once with a small audit every few steps, which maps directly to the work item / evidence gate / failure budget trade-off here.
-- **Electron** read this shape as an extension of PTC, which pushed us to state that PTC only exposes `run_code` and that supervision must sit on its native event chain.
-- **KOLA 2** proposed polling progress and releasing the next instruction plus audit on completion, and the "main router controlling workers" SuperAgent idea; these shaped Mandate unlock semantics and the Lead/Worker/Reviewer split.
+- **群友 CC**：分享了 `dsh-plugin-antidrift` 插件源码与真实长任务经验（用 `/goal` 设置长期目标、单次跑过 30+ 小时、一次开 10 个 agent 并行写）。本项目只做源码取证阅读（未安装、未运行、未复制代码），其“锚点 + 委派 + 审计”思路是重要早期启发。
+- **桉**：提出“一次性部署多条指令、每几条插入一次小审计、不紧急就继续”，直接对应本项目的工作项 / 证据门 / 失败预算取舍。
+- **Electron**：把这种形态认作 PTC 的延伸，促使我们确认“PTC 只有 `run_code`，监管必须建立在原生事件链上”。
+- **KOLA 2**：提出定时轮询检查进度、完成即释放下一条命令与审计，以及“主 router 控制 worker”的 SuperAgent 思路，分别影响了 Mandate 的解锁语义与 Lead/Worker/Reviewer 角色划分。
 
-Thanks also to upstream `zouyuanqing/dsh-super-ptc-mode` (MIT): we referenced its thin preset composition and Lead delegation doctrine, then rewrote the persona and composition for the current DSH contract. License and provenance are preserved in [NOTICE.md](NOTICE.md).
+同时感谢上游参考 `zouyuanqing/dsh-super-ptc-mode`（MIT）：参考了其轻量 preset 组合与 Lead 委派理念，persona 与组合已按当前 DSH 契约重写，许可与出处保留在 [NOTICE.md](NOTICE.md)。
 
-And thanks to everyone who kept discussing, asking and correcting in that group — those conversations turned "evidence-gated release" from a slogan into a state machine.
+也感谢群里持续讨论、提问与纠正的每个人——这些对话让“证据放行”从一句口号变成了可验证的状态机。
 
-## License
+## 许可
 
-MIT, see [LICENSE](LICENSE). Upstream DSH component notices are recorded in [NOTICE.md](NOTICE.md).
+MIT，见 [LICENSE](LICENSE)。上游 DSH 组件声明记录在 [NOTICE.md](NOTICE.md)。

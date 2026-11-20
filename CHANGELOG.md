@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6] - 2026-11-20
+
+### Changed
+
+- Chinese is the default README (README.md); English lives in README.en.md.
+- Language switching uses badge-style hyperlink buttons on both pages.
+
 ## [0.1.5] - 2026-11-20
 
 ### Changed
