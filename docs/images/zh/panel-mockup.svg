@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 444" width="100%" font-family="system-ui,sans-serif">
+<title>右栏面板结构</title>
+<defs>
+<marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#85B7EB"/></marker>
+<marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#AFA9EC"/></marker>
+<marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#5DCAA5"/></marker>
+</defs>
+<text x="40" y="26" font-size="15" font-weight="600" fill="#1F2937">右栏面板结构</text>
+<text x="40" y="44" font-size="12"  fill="#1F2937" opacity="0.65">Run 的只读投影：目标、门禁、证据与审计</text>
+<rect x="40" y="70" width="600" height="330" rx="10" fill="#FFFFFF" stroke="#D0D7DE"/>
+<rect x="56" y="84" width="280" height="56" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="70" y="106" font-size="13" font-weight="600" fill="#0C447C">目标与 Anchor</text>
+<text x="70" y="125" font-size="11" fill="#0C447C" opacity="0.8">版本 · 工作项 · 门禁策略</text>
+<rect x="348" y="84" width="276" height="56" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="362" y="106" font-size="13" font-weight="600" fill="#0C447C">模型策略与路由</text>
+<text x="362" y="125" font-size="11" fill="#0C447C" opacity="0.8">允许路由 · 预算 · 故障</text>
+<rect x="56" y="152" width="280" height="76" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="70" y="174" font-size="13" font-weight="600" fill="#0C447C">工作项</text>
+<text x="70" y="193" font-size="11" fill="#0C447C" opacity="0.8">状态 · attempt · 当前 Mandate</text>
+<rect x="348" y="152" width="276" height="76" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="362" y="174" font-size="13" font-weight="600" fill="#0C447C">Mandate</text>
+<text x="362" y="193" font-size="11" fill="#0C447C" opacity="0.8">Worker / Reviewer · 写域</text>
+<rect x="56" y="240" width="280" height="76" rx="8" fill="#9FE1CB" stroke="#5DCAA5"/>
+<text x="70" y="262" font-size="13" font-weight="600" fill="#085041">证据与门禁</text>
+<text x="70" y="281" font-size="11" fill="#085041" opacity="0.8">类型 · 结果 · 来源角色</text>
+<rect x="348" y="240" width="276" height="76" rx="8" fill="#9FE1CB" stroke="#5DCAA5"/>
+<text x="362" y="262" font-size="13" font-weight="600" fill="#085041">审计时间线</text>
+<text x="362" y="281" font-size="11" fill="#085041" opacity="0.8">每次变更都带 revision</text>
+<rect x="56" y="328" width="568" height="56" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="70" y="350" font-size="13" font-weight="600" fill="#0C447C">composer 入口：Super Agent 监管</text>
+<text x="70" y="369" font-size="11" fill="#0C447C" opacity="0.8">打开面板但不阻塞输入</text>
+<text x="40" y="424" font-size="12"  fill="#1F2937" opacity="0.6">面板不写状态；只通过只读 RPC 读取投影</text>
+</svg>

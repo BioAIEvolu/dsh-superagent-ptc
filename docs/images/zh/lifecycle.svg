@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="100%" font-family="system-ui,sans-serif">
+<title>监督循环：从目标到被接受的证据</title>
+<defs>
+<marker id="lc1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#85B7EB"/></marker>
+</defs>
+<text x="40" y="26" font-size="15" font-weight="600" fill="#1F2937">监督循环：从目标到被接受的证据</text>
+<text x="40" y="44" font-size="12" fill="#1F2937" opacity="0.65">每一步都是真实的工具调用，受 CAS 保护，不能跳过</text>
+<rect x="40" y="58" width="12" height="12" rx="3" fill="#B5D4F4"/><text x="58" y="68" font-size="12" fill="#1F2937">监管步骤</text>
+<rect x="176" y="58" width="12" height="12" rx="3" fill="#FAC775"/><text x="194" y="68" font-size="12" fill="#1F2937">独立验收门</text>
+<rect x="56" y="120" width="160" height="64" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="70" y="150" font-size="13" font-weight="600" fill="#0C447C">① 建 Run</text>
+<text x="70" y="170" font-size="11" fill="#0C447C" opacity="0.8">目标 + 完成定义</text>
+<rect x="236" y="120" width="160" height="64" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="250" y="150" font-size="13" font-weight="600" fill="#0C447C">② 规划</text>
+<text x="250" y="170" font-size="11" fill="#0C447C" opacity="0.8">工作项 + 义务</text>
+<rect x="416" y="120" width="160" height="64" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="430" y="150" font-size="13" font-weight="600" fill="#0C447C">③ 委派合同</text>
+<text x="430" y="170" font-size="11" fill="#0C447C" opacity="0.8">prepare + bind</text>
+<rect x="56" y="232" width="160" height="64" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="70" y="262" font-size="13" font-weight="600" fill="#0C447C">④ Worker</text>
+<text x="70" y="282" font-size="11" fill="#0C447C" opacity="0.8">报告不等于验收</text>
+<rect x="236" y="232" width="160" height="64" rx="8" fill="#FAC775" stroke="#EF9F27"/>
+<text x="250" y="262" font-size="13" font-weight="600" fill="#633806">⑤ Reviewer</text>
+<text x="250" y="282" font-size="11" fill="#633806" opacity="0.85">证据 + 决定</text>
+<rect x="416" y="232" width="160" height="64" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="430" y="262" font-size="13" font-weight="600" fill="#0C447C">⑥ 快照</text>
+<text x="430" y="282" font-size="11" fill="#0C447C" opacity="0.8">证明 + 恢复</text>
+<line x1="216" y1="152" x2="232" y2="152" stroke="#85B7EB" stroke-width="2" marker-end="url(#lc1)"/>
+<line x1="396" y1="152" x2="412" y2="152" stroke="#85B7EB" stroke-width="2" marker-end="url(#lc1)"/>
+<line x1="496" y1="184" x2="496" y2="228" stroke="#85B7EB" stroke-width="2" marker-end="url(#lc1)"/>
+<line x1="216" y1="264" x2="232" y2="264" stroke="#85B7EB" stroke-width="2" marker-end="url(#lc1)"/>
+<line x1="396" y1="264" x2="412" y2="264" stroke="#85B7EB" stroke-width="2" marker-end="url(#lc1)"/>
+<text x="40" y="356" font-size="12" fill="#1F2937" opacity="0.6">Reviewer 自己记录 coverage 证据，再 decide/release；Lead 不代审</text>
+</svg>

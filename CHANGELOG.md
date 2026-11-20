@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4] - 2026-11-20
+
+### Changed
+
+- Split documentation into single-language English (README.md) and Simplified Chinese (README.zh-CN.md) versions with a language switcher.
+- Diagrams now ship in both languages under docs/images/en and docs/images/zh.
+- Package files include README.zh-CN.md.
+
 ## [0.1.3] - 2026-11-20
 
 ### Added
