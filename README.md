@@ -118,7 +118,7 @@ dsh plugin --profile desktop add dsh-superagent-ptc
 https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/market-index.json
 ```
 
-该索引已通过官方 `parseMarketIndex` 校验，解析为 `dsh-superagent-ptc@0.1.3`。
+该索引已通过官方 `parseMarketIndex` 校验，解析为当前 npm 发布版本（与上方 npm 徽章一致）。
 
 ### 本地开发安装
 

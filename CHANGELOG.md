@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.7] - 2026-11-20
+
+### Changed
+
+- READMEs no longer hardcode a package version; the market index resolves to the current npm release so npm, GitHub release and market entry stay in lockstep.
+
 ## [0.1.6] - 2026-11-20
 
 ### Changed

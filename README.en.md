@@ -118,7 +118,7 @@ In DSH -> Settings -> Plugins -> Discover, add this index URL and search for `Su
 https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/market-index.json
 ```
 
-The index passes the official `parseMarketIndex` validation and resolves to `dsh-superagent-ptc@0.1.3`.
+The index passes the official `parseMarketIndex` validation and resolves to the current npm release shown in the badge above.
 
 ### Local development install
 
