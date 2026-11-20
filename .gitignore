@@ -8,3 +8,7 @@ artifacts/
 *.key
 .DS_Store
 Thumbs.db
+publish-log.txt
+stage-*.txt
+pack-dryrun.json
+install-dom.html
