@@ -4,7 +4,7 @@
 
 ## 1. 架构决策
 
-SuperAgent PTC 是 **Preset-first、宿主原生执行、插件增量监管**：
+SuperAgent PTC 是 **Preset-first、宿主原生执行、插件增量监管**：在宿主原生 Agent/Session 机制之上叠加一层监管状态机（`Run → Anchor → Mandate → Evidence → Decision`），把原生 agent 会话按角色绑定进这条监管链；PTC 的原生事件链是整条链的证据底座，监管层不产生第二套事件流。
 
 - 包名 `dsh-superagent-ptc`（npm 公开包，仓库与安装方式见 README）；预设显示名 **SuperAgent PTC**，与标准、创造、PTC、极简完整并列。
 - 稳定内部 ID 不随显示名/包名改变：preset ID `super-agent`、既有 `super_*` 工具、storageDomain `super_agent_mode`、SnapshotProof record 等持久标识保持兼容；名称变化不构成状态迁移。新增 `super_route` 是能力扩展，不改变原有 ID。

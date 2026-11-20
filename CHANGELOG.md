@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.2] - 2026-11-20
+
+### Added
+
+- README states the core positioning explicitly: a supervision state machine (Run → Anchor → Mandate → Evidence → Decision) layered on native Agent/Session, with the native PTC event chain as the evidence substrate.
+
+### Changed
+
+- Layered architecture diagram shows the full supervision chain.
+
 ## [0.1.1] - 2026-11-20
 
 ### Fixed

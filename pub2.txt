@@ -1,0 +1,41 @@
+﻿node.exe : npm warn Unknown env config "store-dir". This will stop working in the next major version of npm.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice
+npm notice package: dsh-superagent-ptc@0.1.1
+npm notice Tarball Contents
+npm notice 1.1kB LICENSE
+npm notice 3.1kB NOTICE.md
+npm notice 12.0kB README.md
+npm notice 11.7kB cordis.patch.yml
+npm notice 21.8kB docs/ARCHITECTURE.md
+npm notice 160.9kB docs/images/architecture-dual.png
+npm notice 5.4kB docs/images/architecture-dual.svg
+npm notice 156.3kB docs/images/architecture-layers.png
+npm notice 5.9kB docs/images/architecture-layers.svg
+npm notice 524B docs/images/icon.svg
+npm notice 76.6kB docs/images/lifecycle.png
+npm notice 3.2kB docs/images/lifecycle.svg
+npm notice 94.1kB docs/images/panel-mockup.png
+npm notice 3.2kB docs/images/panel-mockup.svg
+npm notice 3.9kB docs/VERIFICATION.md
+npm notice 52.8kB lib/client.js
+npm notice 195.0kB lib/host.mjs
+npm notice 3.7kB package.json
+npm notice Tarball Details
+npm notice name: dsh-superagent-ptc
+npm notice version: 0.1.1
+npm notice filename: dsh-superagent-ptc-0.1.1.tgz
+npm notice package size: 553.6 kB
+npm notice unpacked size: 811.1 kB
+npm notice shasum: f49634ab439f49c9ec88dc8574ad1d7d8a3f9d13
+npm notice integrity: sha512-cxDnIZBWrK3Xb[...]T9MJbd2WiR9IQ==
+npm notice total files: 18
+npm notice
+npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access
+npm notice Your package is being processed and may take a few minutes to become available.
++ dsh-superagent-ptc@0.1.1

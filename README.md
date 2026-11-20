@@ -69,6 +69,8 @@ SuperAgent PTC turns "the agent says it is done" into "an independent reviewer p
 
 ## 双层架构
 
+**一句话定位**：SuperAgent PTC 在宿主原生 Agent/Session 机制之上叠加一层监管状态机（`Run → Anchor → Mandate → Evidence → Decision`），把原生 agent 会话按角色（Lead / Worker / Reviewer）绑定进这条监管链；**PTC 的原生事件链**（`run_code` 调用与工具回执）**是整条链的证据底座**——监管层自己不产生第二套事件流。
+
 监管面（Control Plane）只回答"能不能放行"，执行面（Execution Plane）只回答"实际做了什么"，两者之间只有一条契约膜：`super_*` 工具是状态与证据的唯一写入口。
 
 ![Dual-layer architecture](docs/images/architecture-dual.png)
