@@ -30,7 +30,7 @@
       },
       "description": {
         "en": "Long-task supervision preset for DeepSeek Harness: versioned goal anchors, Mandate delegation contracts, an independent read-only Reviewer, typed evidence gates and crash-safe SnapshotProof recovery. Native PTC execution, no second agent loop.",
-        "zh": "DSH 长任务监督预设：版本化目标锚点、Mandate 委派合同、独立只读 Reviewer、分型证据门与崩溃安全 SnapshotProof 恢复；原生 PTC 执行，不另造 Agent loop。"
+        "zh": "DSH 长任务监督预设：在原生 Agent/Session 之上叠加 Run→Anchor→Mandate→Evidence→Decision 监管状态机，PTC 原生事件链为证据底座。"
       },
       "icon": "https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/docs/images/icon.svg",
       "homepage": "https://github.com/BioAIEvolu/dsh-superagent-ptc#readme",
@@ -55,8 +55,8 @@
       },
       "versions": [
         {
-          "version": "0.1.1",
-          "publishTimestamp": 1795164653,
+          "version": "0.1.2",
+          "publishTimestamp": 1795165972,
           "source": {
             "type": "npm",
             "registry": "https://registry.npmjs.org/"
