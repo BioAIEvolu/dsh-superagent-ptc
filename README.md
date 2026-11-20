@@ -109,6 +109,16 @@ dsh plugin --profile desktop add npm:dsh-superagent-ptc
 
 安装后**完全退出并重新启动 DSH**，然后新建会话，在预设选择器里选择 **SuperAgent PTC**。
 
+### 通过 DSH 插件市场索引安装
+
+在 DSH → 设置 → 插件 → 发现 中添加索引 URL，然后搜索 `SuperAgent PTC`：
+
+```text
+https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/market-index.json
+```
+
+该索引已通过 DSH 官方 `parseMarketIndex` 校验，安装规格为 `dsh-superagent-ptc@0.1.0`。
+
 想先本地试用？把仓库 clone 下来用 `link:` 安装：
 
 ```bash
