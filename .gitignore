@@ -12,3 +12,6 @@ publish-log.txt
 stage-*.txt
 pack-dryrun.json
 install-dom.html
+
+# local publish logs
+pub*.txt
