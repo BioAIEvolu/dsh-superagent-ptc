@@ -45,3 +45,10 @@ The upstream MIT notice is preserved below:
 - Local `dsh-codeflow` (MIT): reference for narrowing the slots interface structurally instead of importing the unrelated hoisted pre-rc.3 slots declarations. `scripts/build-client.mjs` adapts its MIT esbuild CJS + `window.__ModuleLoader__.load` recipe for this package. No CodeGraph implementation is copied.
 
 No implementation is copied from the UNLICENSED dsh-task-supervisor reference.
+
+
+## Community references (no code redistributed)
+
+- `dsh-plugin-antidrift` plugin source shared by community member **CC** in a 2026-11-17 group chat; reviewed read-only for design inspiration. Not installed, not executed, not copied.
+- Group discussion on long-running supervision in the same chat (桉, Electron, CC, KOLA 2) informed the work-item, audit cadence, and evidence-gate design.
+- Upstream `zouyuanqing/dsh-super-ptc-mode` (MIT) is credited above.

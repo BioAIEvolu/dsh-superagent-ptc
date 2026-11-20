@@ -223,6 +223,19 @@ pnpm typecheck && pnpm build && pnpm test
 - 提交前请保持 `typecheck`、`build`、`test` 全绿；核心状态机改动需补正反例。
 - 欢迎 Issue / PR：https://github.com/BioAIEvolu/dsh-superagent-ptc/issues
 
+## 致谢
+
+这个插件的方向不是凭空想出来的，来自 2026-11-17 一次真实的群聊讨论与源码分享：
+
+- **群友 CC**：分享了 `dsh-plugin-antidrift` 插件源码，并给出真实的长任务经验——用 `/goal` 设置长期目标、单次跑过 30+ 小时、一次开 10 个 agent 并行写。本项目对其源码只做取证阅读（未安装、未运行、未复制代码），其“锚点 + 委派 + 审计”的思路是重要的早期启发。
+- **桉**：提出“一次性部署多条指令、每几条插入一次小审计、不紧急就继续”的节奏，直接对应本项目“工作项 + 证据门 + 失败预算”的取舍。
+- **Electron**：在讨论中把这种形态认作 PTC 模式的延伸，促使我们确认“PTC 只有 `run_code`，监管必须建立在其原生事件链之上”。
+- **KOLA 2**：提出“定时轮询检查进度、完成就释放下一条命令与审计”，以及“主 router 控制 worker 干活”的 SuperAgent 思路，这两点分别影响了 Mandate 的解锁语义与 Lead/Worker/Reviewer 的角色划分。
+
+另外感谢上游参考 `zouyuanqing/dsh-super-ptc-mode`（MIT）：本项目参考了其轻量 preset 组合方式与 Lead 委派理念，persona 与组合已按当前 DSH 契约重写，许可与出处保留在 [NOTICE.md](NOTICE.md)。
+
+以及所有在群里继续讨论、提问和纠正的人——这些对话让“证据放行”从一句口号变成了可验证的状态机。
+
 ## 许可
 
 MIT License，见 [LICENSE](LICENSE)。上游 DSH 组件版权与来源见 [NOTICE.md](NOTICE.md)。

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.3] - 2026-11-20
+
+### Added
+
+- README acknowledgements: community member CC (dsh-plugin-antidrift source), and the 2026-11-17 group discussion (桉, Electron, CC, KOLA 2) that shaped the supervision loop.
+
+### Changed
+
+- NOTICE records the community references; no third-party code is redistributed.
+
 ## [0.1.2] - 2026-11-20
 
 ### Added
