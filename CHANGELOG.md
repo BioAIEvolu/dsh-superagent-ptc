@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.5] - 2026-11-20
+
+### Changed
+
+- English README is fully English (language switcher and acknowledgements included); Chinese README switcher uses Chinese labels.
+
 ## [0.1.4] - 2026-11-20
 
 ### Changed

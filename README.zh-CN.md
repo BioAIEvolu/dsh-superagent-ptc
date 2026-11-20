@@ -1,6 +1,6 @@
 # SuperAgent PTC
 
-[English](README.md) | **简体中文**
+[英文](README.md) | **简体中文**
 
 [![npm 版本](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![npm 下载量](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)

@@ -1,6 +1,6 @@
 # SuperAgent PTC
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [Chinese](README.zh-CN.md)
 
 [![npm version](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![npm downloads](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
@@ -227,7 +227,7 @@ pnpm typecheck && pnpm build && pnpm test
 This plugin did not appear from thin air. It grew out of a real group discussion and source share on 2026-11-17:
 
 - **CC**, a community member, shared the `dsh-plugin-antidrift` plugin source and real long-run experience (setting a long-term `/goal`, a single run lasting 30+ hours, ten agents writing in parallel). We only read the source for forensics — it was never installed, executed or copied — and its "anchor + delegation + audit" framing was an early inspiration.
-- **桉 (An)** proposed deploying several instructions at once with a small audit every few steps, which maps directly to the work item / evidence gate / failure budget trade-off here.
+- **An** proposed deploying several instructions at once with a small audit every few steps, which maps directly to the work item / evidence gate / failure budget trade-off here.
 - **Electron** read this shape as an extension of PTC, which pushed us to state that PTC only exposes `run_code` and that supervision must sit on its native event chain.
 - **KOLA 2** proposed polling progress and releasing the next instruction plus audit on completion, and the "main router controlling workers" SuperAgent idea; these shaped Mandate unlock semantics and the Lead/Worker/Reviewer split.
 
