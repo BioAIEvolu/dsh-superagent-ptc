@@ -1,4 +1,4 @@
-# dsh-superagent-ptc — DSH >=0.2.2-rc.3 <0.3.0-0 profile bundle patch.
+# dsh-superagent-ptc — DSH >=0.2.2-rc.5 <0.3.0-0 profile bundle patch.
 # One global bare-package Host row enables client-module discovery; super tools/prompt
 # use current-preset/bound-Reviewer conditions and never leak into ordinary sessions.
 # Tool composition follows the installed official PTC preset. The PTC executor

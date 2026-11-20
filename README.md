@@ -101,7 +101,7 @@ super_snapshot              # 只读核对 revision / generation / proof
 
 ## 安装
 
-要求 DSH `>=0.2.2-rc.3 <0.3.0-0`，Node `^22.19.0 || >=24`。
+要求 DSH `>=0.2.2-rc.5 <0.3.0-0`，Node `^22.19.0 || >=24`。
 
 ```bash
 # 从 npm 安装到当前 profile
@@ -180,7 +180,7 @@ prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evalua
 
 | 项 | 值 |
 | --- | --- |
-| DSH | `>=0.2.2-rc.3 <0.3.0-0`（开发基线 `0.2.2-rc.5`） |
+| DSH | `>=0.2.2-rc.5 <0.3.0-0`（验证基线 `0.2.2-rc.5`） |
 | Node | `^22.19.0 || >=24.0.0` |
 | 宿主 peer | `dsh-session`、`dsh-storage-domain`、`dsh-tools`、`react` |
 | 客户端 | web surface；`@deepseek-ai/dsh-client-connection`、`ui-conversation`、`ui-sidebar-right`、`ui-subagent` |

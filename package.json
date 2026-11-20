@@ -1,6 +1,6 @@
 {
   "name": "dsh-superagent-ptc",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "SuperAgent PTC: long-task supervision for DeepSeek Harness. Versioned goal anchors, bounded delegation (Mandate), independent read-only Reviewer acceptance, typed evidence gates and crash-safe proof/recovery. Native PTC execution, preset-first, no second agent loop. 中文：为 DSH 长任务提供目标锚点、有界委派、独立验收与证据放行的监督层。",
   "type": "module",
   "license": "MIT",
@@ -24,7 +24,7 @@
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.2-rc.3 <0.3.0-0"
+    "dsh": ">=0.2.2-rc.5 <0.3.0-0"
   },
   "dsh": {
     "manifestVersion": 1,
@@ -54,9 +54,9 @@
     "zod": "4.6.6"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-session": ">=0.2.2-rc.3 <0.3.0-0",
-    "@deepseek-ai/dsh-storage-domain": ">=0.2.2-rc.3 <0.3.0-0",
-    "@deepseek-ai/dsh-tools": ">=0.2.2-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-session": ">=0.2.2-rc.5 <0.3.0-0",
+    "@deepseek-ai/dsh-storage-domain": ">=0.2.2-rc.5 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-rc.5 <0.3.0-0",
     "react": "^18.2.0"
   },
   "devDependencies": {

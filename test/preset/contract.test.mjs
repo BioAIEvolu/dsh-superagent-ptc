@@ -11,7 +11,7 @@ const count = (needle) => patch.split(needle).length - 1
 
 test('package identity, exports, files, and DSH engine match the build contract', () => {
   assert.equal(pkg.name, 'dsh-superagent-ptc')
-  assert.equal(pkg.version, '0.1.8')
+  assert.equal(pkg.version, '0.1.9')
   assert.equal(pkg.private, undefined)
   assert.equal(pkg.type, 'module')
   assert.equal(pkg.license, 'MIT')
@@ -29,7 +29,7 @@ test('package identity, exports, files, and DSH engine match the build contract'
   assert.ok(read('README.md').startsWith('# SuperAgent PTC\n'))
   assert.ok(read('docs/ARCHITECTURE.md').startsWith('# SuperAgent PTC 架构\n'))
   assert.ok(read('docs/VALIDATION.md').startsWith('# SuperAgent PTC 验证记录\n'))
-  assert.equal(pkg.engines.dsh, '>=0.2.2-rc.3 <0.3.0-0')
+  assert.equal(pkg.engines.dsh, '>=0.2.2-rc.5 <0.3.0-0')
   assert.equal(pkg.dsh.manifestVersion, 1)
   assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml')
   assert.deepEqual(pkg.dsh.client, {
@@ -49,7 +49,7 @@ test('package identity, exports, files, and DSH engine match the build contract'
 
 test('runtime, peer, and development dependencies match real host/client imports', () => {
   assert.deepEqual(pkg.dependencies, { zod: '4.6.6' })
-  const range = '>=0.2.2-rc.3 <0.3.0-0'
+  const range = '>=0.2.2-rc.5 <0.3.0-0'
   assert.equal(pkg.peerDependencies['@deepseek-ai/dsh-tools'], range)
   assert.equal(pkg.peerDependencies['@deepseek-ai/dsh-session'], range)
   assert.equal(pkg.peerDependencies['@deepseek-ai/dsh-storage-domain'], range)

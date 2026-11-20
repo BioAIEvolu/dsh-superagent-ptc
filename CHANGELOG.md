@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.9] - 2026-11-21
+
+### Changed
+
+- DSH kernel requirement tightened to the actually validated baseline: `>=0.2.2-rc.5 <0.3.0-0` in engines, host peer ranges, READMEs, architecture doc, market index and contract tests.
+
 ## [0.1.8] - 2026-11-20
 
 ### Fixed

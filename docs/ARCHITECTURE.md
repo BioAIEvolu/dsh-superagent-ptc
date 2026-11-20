@@ -1,6 +1,6 @@
 # SuperAgent PTC 架构
 
-本文描述当前 `dsh-superagent-ptc` 实现，而非早期研究草案。包版本以 `package.json` 为准，目标宿主为 DSH `>=0.2.2-rc.3 <0.3.0-0`。运行时验证以 [VALIDATION.md](VALIDATION.md) 为准；架构存在不等于每项模型行为已运行验证。
+本文描述当前 `dsh-superagent-ptc` 实现，而非早期研究草案。包版本以 `package.json` 为准，目标宿主为 DSH `>=0.2.2-rc.5 <0.3.0-0`。运行时验证以 [VALIDATION.md](VALIDATION.md) 为准；架构存在不等于每项模型行为已运行验证。
 
 ## 1. 架构决策
 

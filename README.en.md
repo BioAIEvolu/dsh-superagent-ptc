@@ -101,7 +101,7 @@ super_snapshot              # read-only check of revision / generation / proof
 
 ## Install
 
-Requires DSH `>=0.2.2-rc.3 <0.3.0-0` and Node `^22.19.0 || >=24`.
+Requires DSH `>=0.2.2-rc.5 <0.3.0-0` and Node `^22.19.0 || >=24`.
 
 ```bash
 # install from npm into the current profile
@@ -180,7 +180,7 @@ Every write action carries `expectedRevision` and `expectedGeneration`; conflict
 
 | Item | Value |
 | --- | --- |
-| DSH | `>=0.2.2-rc.3 <0.3.0-0` (development baseline `0.2.2-rc.5`) |
+| DSH | `>=0.2.2-rc.5 <0.3.0-0` (validated on `0.2.2-rc.5`) |
 | Node | `^22.19.0 || >=24.0.0` |
 | Host peers | `dsh-session`, `dsh-storage-domain`, `dsh-tools`, `react` |
 | Client | web surface; `@deepseek-ai/dsh-client-connection`, `ui-conversation`, `ui-sidebar-right`, `ui-subagent` |

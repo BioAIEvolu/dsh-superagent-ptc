@@ -4,7 +4,7 @@
 
 `dsh-superagent-ptc` (display name **SuperAgent PTC**) is the renamed continuation of this workspace's original `dsh-super-agent-mode` implementation. The rename on 2026-11-19 changes the package, global bare Host Loader row, Host export name, client `data-plugin`, and ModuleLoader id. It intentionally preserves the established `super_agent_mode` storage domain, `plugin:dsh-super-agent-mode/proof` native record, `dsh-super-agent-mode/projection` RPC endpoint, and right-sidebar internal identifiers so existing Runs and proofs remain readable.
 
-Development-only `@deepseek-ai/*` pins are aligned to DSH 0.2.2-rc.5; the declared runtime compatibility range remains `>=0.2.2-rc.3 <0.3.0-0`.
+Development-only `@deepseek-ai/*` pins are aligned to DSH 0.2.2-rc.5; the declared runtime compatibility range remains `>=0.2.2-rc.5 <0.3.0-0`.
 
 ## dsh-super-ptc-mode
 
@@ -13,7 +13,7 @@ Development-only `@deepseek-ai/*` pins are aligned to DSH 0.2.2-rc.5; the declar
 - License: MIT
 - Local reference snapshot used during development (not redistributed).
 - Reference files: `cordis.patch.yml` and `LICENSE`
-- Reuse: the thin preset-composition approach and Lead delegation doctrine informed this package. The Super Agent persona and composition are rewritten for the current DSH rc.3 contract, including direct use of `@deepseek-ai/dsh-tool-executor-ptc`.
+- Reuse: the thin preset-composition approach and Lead delegation doctrine informed this package. The Super Agent persona and composition are rewritten for the current DSH rc.5 contract, including direct use of `@deepseek-ai/dsh-tool-executor-ptc`.
 
 The upstream MIT notice is preserved below:
 
