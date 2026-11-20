@@ -1,0 +1,39 @@
+﻿node.exe : npm warn Unknown env config "store-dir". This will stop working in the next major version of npm.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice
+npm notice package: dsh-superagent-ptc@0.1.0
+npm notice Tarball Contents
+npm notice 1.1kB LICENSE
+npm notice 3.1kB NOTICE.md
+npm notice 11.6kB README.md
+npm notice 11.7kB cordis.patch.yml
+npm notice 21.8kB docs/ARCHITECTURE.md
+npm notice 5.4kB docs/images/architecture-dual.svg
+npm notice 6.0kB docs/images/architecture-layers.svg
+npm notice 4.2kB docs/images/lifecycle.svg
+npm notice 3.1kB docs/images/panel-mockup.svg
+npm notice 3.9kB docs/VERIFICATION.md
+npm notice 52.8kB lib/client.js
+npm notice 195.0kB lib/host.mjs
+npm notice 3.7kB package.json
+npm notice Tarball Details
+npm notice name: dsh-superagent-ptc
+npm notice version: 0.1.0
+npm notice filename: dsh-superagent-ptc-0.1.0.tgz
+npm notice package size: 85.7 kB
+npm notice unpacked size: 323.4 kB
+npm notice shasum: adbb971c037ac8e89800e9c479240e237d50b40f
+npm notice integrity: sha512-am1q65WQ8sovK[...]k1rNThxF4hGLw==
+npm notice total files: 13
+npm notice
+npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access
+npm error code E409
+npm error 409 Conflict - PUT https://registry.npmjs.org/dsh-superagent-ptc - Cannot publish over previously staged vers
+ion "0.1.0".
+npm error A complete log of this run can be found in: C:\Users\Admin\AppData\Local\npm-cache\_logs\2026-11-20T07_54_57_
+409Z-debug-0.log

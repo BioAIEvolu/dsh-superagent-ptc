@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "title": {
+    "en": "SuperAgent PTC",
+    "zh": "SuperAgent PTC 长任务监管"
+  },
+  "description": {
+    "en": "Index for the SuperAgent PTC plugin: long-task supervision for DeepSeek Harness with anchors, bounded delegation, independent review and evidence-gated release.",
+    "zh": "SuperAgent PTC 插件索引：为 DSH 长任务提供目标锚点、有界委派、独立验收与证据放行的监督层。"
+  },
+  "metadata": {
+    "name": "BioAIEvolu DSH Plugins",
+    "categories": {
+      "workflow": {
+        "title": {
+          "en": "Workflow and Supervision",
+          "zh": "工作流与监督"
+        }
+      }
+    },
+    "labels": {},
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "dsh-superagent-ptc",
+      "title": {
+        "en": "SuperAgent PTC",
+        "zh": "SuperAgent PTC"
+      },
+      "description": {
+        "en": "Long-task supervision preset for DeepSeek Harness: versioned goal anchors, Mandate delegation contracts, an independent read-only Reviewer, typed evidence gates and crash-safe SnapshotProof recovery. Native PTC execution, no second agent loop.",
+        "zh": "DSH 长任务监督预设：版本化目标锚点、Mandate 委派合同、独立只读 Reviewer、分型证据门与崩溃安全 SnapshotProof 恢复；原生 PTC 执行，不另造 Agent loop。"
+      },
+      "icon": "https://raw.githubusercontent.com/BioAIEvolu/dsh-superagent-ptc/main/docs/images/icon.svg",
+      "homepage": "https://github.com/BioAIEvolu/dsh-superagent-ptc#readme",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/BioAIEvolu/dsh-superagent-ptc.git"
+      },
+      "metadata": {
+        "category": "workflow",
+        "keywords": [
+          "dsh",
+          "supervisor",
+          "long-task",
+          "delegation",
+          "reviewer",
+          "evidence",
+          "acceptance",
+          "ptc",
+          "subagent",
+          "workflow"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1795161357,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.3 <0.3.0-0"
+          }
+        }
+      ]
+    }
+  ]
+}
