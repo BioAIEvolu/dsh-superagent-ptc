@@ -1,4 +1,4 @@
-<svg viewBox="0 0 680 560" width="100%" font-family="system-ui,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 560" width="100%" font-family="system-ui,sans-serif">
 <title>SuperAgent PTC layered architecture</title>
 <defs>
 <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#85B7EB"/></marker>
@@ -36,9 +36,9 @@
 <rect x="352" y="300" width="272" height="54" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
 <text x="366" y="322" font-size="13" font-weight="600" fill="#0C447C">Client</text>
 <text x="366" y="341" font-size="11" fill="#0C447C" opacity="0.8">right panel plus composer entry</text>
-<rect x="56" y="364" width="568" height="34" rx="8" fill="#9FE1CB" stroke="#5DCAA5"/>
+<rect x="56" y="364" width="568" height="40" rx="8" fill="#9FE1CB" stroke="#5DCAA5"/>
 <text x="70" y="386" font-size="13" font-weight="600" fill="#085041">storageDomain RunState v2 + SnapshotProof</text>
-<text x="70" y="405" font-size="11" fill="#085041" opacity="0.8">proof, then storage, then live core</text>
+<text x="70" y="400" font-size="11" fill="#085041" opacity="0.8">proof, then storage, then live core</text>
 <rect x="40" y="426" width="600" height="88" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
 <text x="52" y="444" font-size="12"  fill="#1F2937" opacity="0.7">3  Native DSH runtime (execution authority)</text>
 <rect x="56" y="452" width="280" height="50" rx="8" fill="#CECBF6" stroke="#AFA9EC"/>
@@ -47,14 +47,14 @@
 <rect x="352" y="452" width="272" height="50" rx="8" fill="#CECBF6" stroke="#AFA9EC"/>
 <text x="366" y="474" font-size="13" font-weight="600" fill="#3C3489">PTC run_code, native subagent</text>
 <text x="366" y="493" font-size="11" fill="#3C3489" opacity="0.8">sendMessage wake, session log</text>
-<line x1="149" y1="180" x2="149" y2="232" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
-<line x1="527" y1="180" x2="527" y2="232" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
+<line x1="149" y1="184" x2="149" y2="210" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="527" y1="184" x2="527" y2="210" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
 <line x1="196" y1="290" x2="196" y2="298" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
-<line x1="196" y1="354" x2="196" y2="362" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+
 <line x1="340" y1="327" x2="350" y2="327" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
-<line x1="196" y1="398" x2="196" y2="424" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
-<text x="156" y="208" font-size="11"  fill="#1F2937" opacity="0.75">super_*</text>
-<text x="534" y="208" font-size="11"  fill="#1F2937" opacity="0.75">read-only</text>
-<text x="204" y="416" font-size="11"  fill="#1F2937" opacity="0.75">proof to native session</text>
+<line x1="196" y1="404" x2="196" y2="424" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
+<text x="156" y="202" font-size="11"  fill="#1F2937" opacity="0.75">super_*</text>
+<text x="534" y="202" font-size="11"  fill="#1F2937" opacity="0.75">read-only</text>
+<text x="204" y="418" font-size="10"  fill="#1F2937" opacity="0.75">proof to native session</text>
 <text x="40" y="544" font-size="12"  fill="#1F2937" opacity="0.6">Ordinary sessions get no tools and no panel; Reviewer read-only is enforced by the guard</text>
 </svg>

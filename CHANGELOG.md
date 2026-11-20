@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-11-20
+
+### Fixed
+
+- README architecture diagrams now render everywhere: SVG roots declare the SVG namespace, PNG previews are published alongside the SVG sources.
+- Lifecycle and layered diagrams reflowed to remove clipped labels.
+
+### Changed
+
+- README image references point at PNG previews for maximum renderer compatibility.
 ## [0.1.0] - 2026-11-20
 
 ### Added

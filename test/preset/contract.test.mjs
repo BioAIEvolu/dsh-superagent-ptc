@@ -11,7 +11,7 @@ const count = (needle) => patch.split(needle).length - 1
 
 test('package identity, exports, files, and DSH engine match the build contract', () => {
   assert.equal(pkg.name, 'dsh-superagent-ptc')
-  assert.equal(pkg.version, '0.1.0')
+  assert.equal(pkg.version, '0.1.1')
   assert.equal(pkg.private, undefined)
   assert.equal(pkg.type, 'module')
   assert.equal(pkg.license, 'MIT')

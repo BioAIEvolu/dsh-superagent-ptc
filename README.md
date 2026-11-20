@@ -17,7 +17,7 @@ SuperAgent PTC turns "the agent says it is done" into "an independent reviewer p
                    →  证据通过才放行  →  super_snapshot 给出可验证的 revision/proof
 ```
 
-![Layered architecture](docs/images/architecture-layers.svg)
+![Layered architecture](docs/images/architecture-layers.png)
 
 ## 目录
 
@@ -71,7 +71,7 @@ SuperAgent PTC turns "the agent says it is done" into "an independent reviewer p
 
 监管面（Control Plane）只回答"能不能放行"，执行面（Execution Plane）只回答"实际做了什么"，两者之间只有一条契约膜：`super_*` 工具是状态与证据的唯一写入口。
 
-![Dual-layer architecture](docs/images/architecture-dual.svg)
+![Dual-layer architecture](docs/images/architecture-dual.png)
 
 - **A 监督面**：Lead 维护 Anchor 与义务账本；Mandate 冻结工作项、写域、路由与 attempt；证据门与预算决定放行。
 - **契约膜**：任何状态变更都必须穿过 `super_*` 的 CAS 校验，双层之间没有第二套写路径。
@@ -80,7 +80,7 @@ SuperAgent PTC turns "the agent says it is done" into "an independent reviewer p
 
 ## 监督循环
 
-![Supervision loop](docs/images/lifecycle.svg)
+![Supervision loop](docs/images/lifecycle.png)
 
 ```text
 super_run create            # 目标 + 完成定义 + 门禁策略
@@ -157,7 +157,7 @@ prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evalua
 
 ## 右栏监管面板
 
-![Right panel anatomy](docs/images/panel-mockup.svg)
+![Right panel anatomy](docs/images/panel-mockup.png)
 
 - 面板是**只读投影**：`目标/Anchor`、`模型策略与路由审计`、`工作项`、`Mandate`、`证据与门禁`、`审计时间线`、`议程/attempt`。
 - 面板不写状态；所有变更只能由 `super_*` 工具穿过 Host 的 CAS 校验完成。
