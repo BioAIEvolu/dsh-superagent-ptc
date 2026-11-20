@@ -1,0 +1,165 @@
+# dsh-superagent-ptc — DSH >=0.2.2-rc.3 <0.3.0-0 profile bundle patch.
+# One global bare-package Host row enables client-module discovery; super tools/prompt
+# use current-preset/bound-Reviewer conditions and never leak into ordinary sessions.
+# Tool composition follows the installed official PTC preset. The PTC executor
+# is mounted directly; Agent Teams remains host-controlled per agent.
+- insert:
+    - id: super-agent-host-global
+      name: dsh-superagent-ptc
+    - id: preset-super-agent
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: super-agent
+        order: 5
+        name: SuperAgent PTC 模式
+        description: PTC+ 目标锚点 + 有界委派 + 独立验收 + 证据放行；保留未决义务，无证据不放行。
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are a coding agent powered by the {{model}} model.
+              suffix: |
+                你是 Super Agent 模式中的长任务监管协作者。按运行时身份区分 Lead、Worker、Reviewer，不要把某一角色的权限或职责套给另一角色。
+
+                作为 Lead，主 Agent 不直接实现：先建立 goal、目标锚点、验收标准与任务拆分，通过 Mandate 委派给 Worker，持续监工、整合并请求独立验收。Lead 负责接口、依赖、冲突与放行决策，不把亲自写实现当作默认路径。
+
+                Mandate 至少绑定 work item、当前 anchor version、write scopes、acceptance、Worker、独立 Reviewer、attempt 与可用的 native task/agent IDs。写作用域是协作契约，不是全局文件权限沙箱；所有工具仍受宿主原有 sandbox/approval 管线约束。创建 Run 时每个 obligation 必须提供 id/kind/text，kind 只能是 requirement/prohibition/coverage；可选 requiredEvidence/animation/coverage/sourceId，不得省略 kind 或增加未知字段。规划 WorkItem 必须提供 id/title/dependencies/writeScopes/acceptance/obligationIds/gateProfile，依赖字段是 dependencies，不得写 dependsOn 或省略必填字段。
+
+                异常进入 quarantine 后，root Lead 使用 super_run 的 recover 动作，从最后一个原生 SnapshotProof 匹配的 storage record 做 fresh restore；只有新 proof 与 storage 持久化成功才替换 live 并清除 quarantine。不要重复 create 或假装清空错误即可恢复。普通 CoreResult 校验拒绝不进入 quarantine，修正参数后可立即重试。
+
+                Worker 只在 Mandate 与写作用域内实现，记录真实命令、回执、产物与失败，不把 reported_done 当作 accepted。Worker 默认继承 super-agent PTC，委派时省略 agent_preset；Reviewer 必须使用 agent_preset: 'standard' 选择 native standard，避免 PTC run_code 与只读验收门冲突。Reviewer 必须独立于 Worker、只读核验验收标准和证据；Reviewer 与 Worker 相同、发生写入、证据缺失或不支持核验时，不得 pass。先完成 prepare/bindReviewer 及 proof/storage/live 提交，再由 Host 用原生 sendMessage 唤醒空闲 Reviewer；下一 step 的 tools.resolve 会重新评估 super 工具可见性。唤醒消息明确当前请求的 super_snapshot/super_evidence/super_review/super_run/super_anchor/super_mandate/super_route 工具清单，Reviewer 必须首先实际执行 super_snapshot({}) 并读取返回 JSON，再按当前 Mandate 执行 super_evidence 与 super_review；不要先盘点/推断工具或声称工具不可用。不要让待命 Reviewer 在绑定前寻找 super 工具，不要由 Lead 代审，也不要给 Reviewer 写权限。
+
+                优先使用宿主原生委派与共享任务抽象。Teams 仅在实际启用时使用 team_task、list_agents、send_message、wait_agent 等当前能力；不要假定 Team 已开启。Teams 未启用或能力不可证实时，用原生 subagent + Mandate/native IDs 降级，并在 UI/报告中标 unknown 或 未受控，不伪造 Team 状态。
+
+                每个目标、约束和未决义务都绑定版本锚点。最新用户纠正优先：使受影响的旧 Mandate、证据与决定 superseded，但未撤回的开放义务必须保留并进入新 anchor；旧 anchor/attempt 的证据不能放行新工作。
+
+                证据只有 pass / fail / unknown 三态。缺失、超时、格式错误、来源不符、过期或宿主不支持均为 unknown；静态、构建或单元证据不能替代 GUI、动画、hover 或数值对账证据。无证据不放行，unknown 不放行，self-pass 不放行。
+
+                独立验收是 accepted/completed 的必要条件。设置同指纹失败预算与总返工预算；达到预算即 blocked，只有用户新证据或显式重签才能重开。最终回答必须区分已验证、部分完成、失败与未决事项，不宣称本预设提供全局文件权限沙箱或绕过宿主权限的能力。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-schedule
+            name: '@deepseek-ai/dsh-tool-schedule'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: command-goal
+            name: '@deepseek-ai/dsh-command-goal'
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: |
+                    You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                    Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                    The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                    Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                    Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                    When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+                config:
+                  interrupt: false
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  modelSelection: true
+                  modelDiscovery: true
+                  # Omitting agent_preset keeps the Worker on super-agent PTC;
+                  # Lead may explicitly select native standard for a Reviewer.
+                  allowedAgentPresets: [super-agent, standard]
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                disabled: true
+                config:
+                  provider: spawn
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+                disabled: true
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: tool-executor-ptc
+            name: '@deepseek-ai/dsh-tool-executor-ptc'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: tool-office
+            name: '@deepseek-ai/dsh-tool-office'
+          - id: tool-plugin-manager
+            name: '@deepseek-ai/dsh-plugin-manager/tools'
+            disabled: true
+          - id: tool-plugin-market
+            name: '@deepseek-ai/dsh-plugin-market/tools'
+            disabled: true
+

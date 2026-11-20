@@ -1,0 +1,10 @@
+node_modules/
+artifacts/
+.validation/
+*.tgz
+.env
+.npmrc
+*.pem
+*.key
+.DS_Store
+Thumbs.db

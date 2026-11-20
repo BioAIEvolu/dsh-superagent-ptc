@@ -1,0 +1,123 @@
+{
+  "name": "dsh-superagent-ptc",
+  "version": "0.1.0",
+  "description": "SuperAgent PTC: long-task supervision for DeepSeek Harness. Versioned goal anchors, bounded delegation (Mandate), independent read-only Reviewer acceptance, typed evidence gates and crash-safe proof/recovery. Native PTC execution, preset-first, no second agent loop. 中文：为 DSH 长任务提供目标锚点、有界委派、独立验收与证据放行的监督层。",
+  "type": "module",
+  "license": "MIT",
+  "main": "./lib/host.mjs",
+  "exports": {
+    ".": "./lib/host.mjs",
+    "./host": "./lib/host.mjs",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/host.mjs",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md",
+    "docs"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.2-rc.3 <0.3.0-0"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "external": [
+        "react"
+      ],
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-subagent"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsdown && node scripts/build-client.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/core/*.test.ts\" \"test/preset/*.test.mjs\" \"test/host/*.test.ts\" \"test/client/*.test.ts\" \"test/client/*.test.mjs\"",
+    "test:preset": "node --test test/preset/contract.test.mjs"
+  },
+  "dependencies": {
+    "zod": "4.6.6"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-session": ">=0.2.2-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-storage-domain": ">=0.2.2-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-rc.3 <0.3.0-0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-team": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-connection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-subagent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-goal": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-query": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-storage-domain": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-subagent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.12",
+    "esbuild": "^0.25.0",
+    "react": "^18.3.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek",
+    "agent",
+    "supervisor",
+    "superagent",
+    "long-task",
+    "long-running",
+    "delegation",
+    "mandate",
+    "reviewer",
+    "acceptance",
+    "evidence",
+    "gate",
+    "ptc",
+    "subagent",
+    "orchestration",
+    "workflow",
+    "preset",
+    "automation",
+    "recovery",
+    "proof"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BioAIEvolu/dsh-superagent-ptc.git"
+  },
+  "homepage": "https://github.com/BioAIEvolu/dsh-superagent-ptc#readme",
+  "bugs": {
+    "url": "https://github.com/BioAIEvolu/dsh-superagent-ptc/issues"
+  },
+  "author": {
+    "name": "BioAIEvolu"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

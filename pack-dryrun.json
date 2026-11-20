@@ -1,0 +1,88 @@
+﻿node.exe : npm warn Unknown env config "store-dir". This will stop working in the next major version of npm.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[
+  {
+    "id": "dsh-superagent-ptc@0.1.0",
+    "name": "dsh-superagent-ptc",
+    "version": "0.1.0",
+    "size": 85656,
+    "unpackedSize": 323356,
+    "shasum": "adbb971c037ac8e89800e9c479240e237d50b40f",
+    "integrity": "sha512-am1q65WQ8sovKXrujhzA4CRqphWkwguc0vPM4zta1lgpAwJPL3fHtZ02GFo9y41sYyp0lH1TMk1rNThxF4hGLw==",
+    "filename": "dsh-superagent-ptc-0.1.0.tgz",
+    "files": [
+      {
+        "path": "LICENSE",
+        "size": 1090,
+        "mode": 420
+      },
+      {
+        "path": "NOTICE.md",
+        "size": 3091,
+        "mode": 420
+      },
+      {
+        "path": "README.md",
+        "size": 11638,
+        "mode": 420
+      },
+      {
+        "path": "cordis.patch.yml",
+        "size": 11732,
+        "mode": 420
+      },
+      {
+        "path": "docs/ARCHITECTURE.md",
+        "size": 21750,
+        "mode": 420
+      },
+      {
+        "path": "docs/images/architecture-dual.svg",
+        "size": 5404,
+        "mode": 420
+      },
+      {
+        "path": "docs/images/architecture-layers.svg",
+        "size": 5993,
+        "mode": 420
+      },
+      {
+        "path": "docs/images/lifecycle.svg",
+        "size": 4178,
+        "mode": 420
+      },
+      {
+        "path": "docs/images/panel-mockup.svg",
+        "size": 3134,
+        "mode": 420
+      },
+      {
+        "path": "docs/VERIFICATION.md",
+        "size": 3897,
+        "mode": 420
+      },
+      {
+        "path": "lib/client.js",
+        "size": 52829,
+        "mode": 420
+      },
+      {
+        "path": "lib/host.mjs",
+        "size": 194959,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 3661,
+        "mode": 420
+      }
+    ],
+    "entryCount": 13,
+    "bundled": []
+  }
+]

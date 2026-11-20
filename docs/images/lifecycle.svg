@@ -1,0 +1,41 @@
+<svg viewBox="0 0 680 460" width="100%" font-family="system-ui,sans-serif">
+<title>Supervision loop</title>
+<defs>
+<marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#85B7EB"/></marker>
+<marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#AFA9EC"/></marker>
+<marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#5DCAA5"/></marker>
+</defs>
+<text x="40" y="26" font-size="15" font-weight="600" fill="#1F2937">Supervision loop: from objective to accepted evidence</text>
+<text x="40" y="44" font-size="12"  fill="#1F2937" opacity="0.65">Every step is a real tool call with CAS protection; no step can be skipped</text>
+<rect x="40" y="58" width="12" height="12" rx="3" fill="#B5D4F4"/><text x="58" y="68" font-size="12"  fill="#1F2937">Supervision step</text>
+<rect x="190" y="58" width="12" height="12" rx="3" fill="#FAC775"/><text x="208" y="68" font-size="12"  fill="#1F2937">Independent gate</text>
+<rect x="40" y="120" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="54" y="142" font-size="13" font-weight="600" fill="#0C447C">1  create</text>
+<text x="54" y="161" font-size="11" fill="#0C447C" opacity="0.8">super_run create / objective + DoD + gate policy</text>
+<rect x="240" y="120" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="254" y="142" font-size="13" font-weight="600" fill="#0C447C">2  plan</text>
+<text x="254" y="161" font-size="11" fill="#0C447C" opacity="0.8">super_run plan / work items, dependencies, obligations</text>
+<rect x="440" y="120" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="454" y="142" font-size="13" font-weight="600" fill="#0C447C">3  Mandate</text>
+<text x="454" y="161" font-size="11" fill="#0C447C" opacity="0.8">prepare then bind / worker SessionId, write scope, routing</text>
+<rect x="40" y="216" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="54" y="238" font-size="13" font-weight="600" fill="#0C447C">4  Worker</text>
+<text x="54" y="257" font-size="11" fill="#0C447C" opacity="0.8">report / reported_done is not accepted</text>
+<rect x="240" y="216" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="254" y="238" font-size="13" font-weight="600" fill="#0C447C">5  Reviewer</text>
+<text x="254" y="257" font-size="11" fill="#0C447C" opacity="0.8">evidence, decide, release / read-only receipts, independent gate</text>
+<rect x="440" y="216" width="176" height="74" rx="8" fill="#B5D4F4" stroke="#85B7EB"/>
+<text x="454" y="238" font-size="13" font-weight="600" fill="#0C447C">6  Snapshot</text>
+<text x="454" y="257" font-size="11" fill="#0C447C" opacity="0.8">super_snapshot / proof verified, recovery ready</text>
+<rect x="440" y="300" width="176" height="74" rx="8" fill="#FAC775" stroke="#EF9F27"/>
+<text x="454" y="322" font-size="13" font-weight="600" fill="#633806">Independent gate</text>
+<text x="454" y="341" font-size="11" fill="#633806" opacity="0.8">fail or unknown blocks release</text>
+<line x1="216" y1="157" x2="240" y2="157" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="416" y1="157" x2="440" y2="157" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="616" y1="194" x2="616" y2="240" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="440" y1="240" x2="416" y2="240" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="216" y1="240" x2="240" y2="240" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="128" y1="194" x2="128" y2="216" stroke="#85B7EB" stroke-width="2" marker-end="url(#a1)"/>
+<line x1="528" y1="337" x2="528" y2="374" stroke="#AFA9EC" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
+<text x="40" y="440" font-size="12"  fill="#1F2937" opacity="0.6">Reviewer records its own coverage evidence, then decide and release; the Lead never proxies the review</text>
+</svg>
