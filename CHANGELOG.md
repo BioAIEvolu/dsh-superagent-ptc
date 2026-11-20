@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.8] - 2026-11-20
+
+### Fixed
+
+- README links to `docs/VALIDATION.md` now resolve: the validation summary was renamed from `docs/VERIFICATION.md` to `docs/VALIDATION.md`, and the architecture doc no longer hardcodes a version.
+
 ## [0.1.7] - 2026-11-20
 
 ### Changed
