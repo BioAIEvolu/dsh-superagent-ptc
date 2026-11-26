@@ -97,7 +97,7 @@
 
 隔离 `super-agent-live` profile、真实 `ark-agent-plan/glm-5.3-flash/high` 路由的独立会话（run `run_1b186a1c…`）已跑通：
 
-- W1 在 attempt 2 由独立 native standard Reviewer 放行，Decision=`decision_9c3830a0-55db-42dc-a5c2-5cdf4be81ab0`；W2 仅从 held 变 ready，未执行，未创建 result.md。
+- W1 在 attempt 2 由独立 native standard Reviewer 放行，Decision=`decision_9c3830a0…`；W2 仅从 held 变 ready，未执行，未创建 result.md。
 - `super_evidence verify(verification=mandate_delivery, kind=coverage)` 核对 Lead 实发与 Worker 实收，生成 host-observed `coverage/full`，包含真实事件引用。
 - Reviewer 独立读取 fixture 并登记独立 coverage；两条 coverage 义务均为 met。
 - 最终 Run=`run_1b186a1c…`，revision 18 / generation 1，SnapshotProof verified。
@@ -111,9 +111,9 @@
 
 同一隔离 Run 中的 R 已按真实流程完成：attempt 1 的 evaluate 为 `unknown`（缺 build/unit/host_contract），随后经用户批准的 `workItemRevisions` 创建 Anchor v3，将通用 host flag 替换为 `delivery-proof` 的专用 `verification=mandate_delivery` coverage 义务；新 attempt 重新投递、Worker report、独立 Reviewer 核验后放行。
 
-- 当前 Mandate=`mandate_d8172423-18d0-4d4c-aa9d-d65fd347861e`，attempt 2。
-- Host 核验证据=`evidence_1ad04d11-acce-4853-a064-f575c4ae6390`：真实 Lead `tool/ptc-dispatch` 与 Worker `agent/inbox/spliced` 对齐，`coverage=full`、`verification=mandate_delivery`、`hostObserved=true`。
-- 独立 Reviewer=`62cfff03-a742-44c0-8db0-787b8b25c4ee`，Decision=`decision_87a6f229-992d-42f8-8db5-c5f39d2eca27`，R accepted。
+- 当前 Mandate=`mandate_d8172423…`，attempt 2。
+- Host 核验证据=`evidence_1ad04d11…`：真实 Lead `tool/ptc-dispatch` 与 Worker `agent/inbox/spliced` 对齐，`coverage=full`、`verification=mandate_delivery`、`hostObserved=true`。
+- 独立 Reviewer=`62cfff03…`，Decision=`decision_87a6f229…`，R accepted。
 - 最终 revision 32 / generation 1，SnapshotProof verified。
 
 首次提交 unknown 时，Reviewer 的结果消息被守卫误报为写操作；已通过本机原生事件定位并修复“结果叙述”与“文件指令”的分类，新增回归后恢复执行。未知/失败过程没有被改写为已通过。
