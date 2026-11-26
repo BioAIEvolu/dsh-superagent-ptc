@@ -6,7 +6,7 @@
 [![npm 下载量](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![许可 MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-6f42c1)](https://github.com/deepseek-ai/deepseek-harness)
-[![测试](https://img.shields.io/badge/tests-176%2F176-brightgreen)](docs/VALIDATION.md)
+[![测试](https://img.shields.io/badge/tests-214%2F214-brightgreen)](docs/VALIDATION.md)
 
 > **DeepSeek Harness 的长任务监督层**——版本化锚点、有界委派、独立验收、证据放行。
 
@@ -54,10 +54,12 @@ PTC：Run + Anchor  →  逐项 Mandate 派给 Worker  →  standard Reviewer �
 - **Preset-first**：与标准、创造、PTC、极简并列的一个 Agent 预设（`SuperAgent PTC`），不改默认模型、权限或其他会话。
 - **七项监管工具**：`super_run`、`super_anchor`、`super_mandate`、`super_evidence`、`super_review`、`super_route`、`super_snapshot`，全部通过 PTC 的 `run_code` 调用，不新增脚本工具。
 - **原生身份绑定**：Worker 与 Reviewer 都是真实原生子 Agent；Host 用原生 `sendMessage` 唤醒绑定的 Reviewer，Lead 无法自己扮演验收者。
+- **六条 Worker 契约**：每次 `prepare` 都把不静默改道、读后再改、写域不外扩、歧义分级、按验收自验、报告自带证据写入 `mandateText`，供 Lead 原样投递。
+- **显式人工交接**：`bind` 后 Lead 用 `super_snapshot` 取当前 CAS、用 `super_mandate show` 读取并原样转发当前 `mandateText`，仅追加一行 `ACTION NOW`；本阶段没有自动 `dispatch`。
 - **独立只读验收**：Reviewer 必须使用原生 `standard` 预设；守卫对写操作与未知 shell 一律 fail-closed，`pwsh` 的只读命令（含读取 `$env:`）按实际参数分类。
 - **分型证据门**：证据只有 `pass / fail / unknown` 三态；`unknown` 不放行；构建日志、单测与截图不能替代运行时证据。
 - **失败预算与可恢复审计**：同一指纹达到预算即阻塞；`super_run recover` 增加 generation 并保留完整审计链。
-- **客户端可视化**：右栏监管面板与 composer 入口，只读投影。
+- **客户端可视化**：右栏监管面板与会话/subagent 区域入口，只读投影；不再注册 composer dock。
 - **零全局副作用**：普通会话没有 `super_*` 工具、没有提示词段落、没有面板。
 
 ### 明确不做什么
@@ -92,12 +94,30 @@ super_run plan              # 工作项 / 依赖 / 义务（开放账本）
 super_anchor                # 版本化锚点；纠正会失效受影响的工作
 super_mandate prepare       # 冻结工作项、写域、模型路由、attempt
 super_mandate bind          # 绑定原生 Worker 的 SessionId
-super_mandate bindReviewer  # 绑定 standard Reviewer 并由 Host 原生唤醒
-super_evidence record       # 分型、可追溯的证据
+# Lead: 用 super_snapshot 取 CAS，用 super_mandate show 取当前 mandateText
+#       原生 send_message 原样转发，只追加一行 ACTION NOW，不手抄 ID/CAS
+super_evidence record       # Worker 报告执行结果与 build/unit 等真实回执
+super_mandate report        # Worker 报告完成，进入 reported_done
+super_mandate bindReviewer  # reported_done 后才绑定并唤醒 standard Reviewer
+super_evidence verify       # 需要时由 Host 核对实发/实收，生成 coverage 证据
 super_review evaluate       # 门禁评估
 super_review decide/release # 门禁通过才放行
 super_snapshot              # 只读核对 revision / generation / proof
 ```
+
+### Mandate 交接与 Worker 纪律
+
+`prepareMandate` 除了冻结工作项、anchor/generation/attempt、写域、验收与路由，还固定生成六条 Worker 执行契约：不静默改道、读后再改、写域不外扩、歧义分级、按验收自验、报告自带证据。它们是由 core 生成、测试覆盖的**消息合同**；能否约束真实模型仍须观察原生委派回路。
+
+`bind` 成功后，Lead 先用最新 `super_snapshot` 取得当前 CAS，再用 `super_mandate show` 读取**当前** `mandateText`，通过原生 `send_message` 原样发给已绑定 Worker，只在末尾追加一行 `ACTION NOW: <当前动作>`。不得改写合同、凭记忆手抄 ID/CAS，也不使用尚不存在的 `dispatch`。
+
+需要独立交付核验时，调用 `super_evidence verify` 并指定 `verification=mandate_delivery`，按合同选择 `kind=coverage` 或 `kind=host_contract`。Host 核对当前 Mandate 的实发与 Worker 实收，直接生成带来源引用的证据；coverage obligation 必须显式声明 `verification=mandate_delivery`，一次普通投递不能给“只报告”“旧指令停止”等无关义务盖章。shell 输出的 `result=pass`、Worker 自报 coverage 或未绑定 Reviewer 的自报都不能替代独立验收。
+
+最新 Decision 为 `unknown` 且工作项停在 `verifying` 时，按原合同完整字段显式 replan，开新 attempt 并重新取证，不创建 A2 绕行。确需修订验收合同时，必须由用户明确授权，通过 `super_run replan` 提交 `instruction`、必要 `obligationDelta` 和完整 `workItemRevisions`，生成新 Anchor 后再 plan；旧历史保留，不能借恢复降低门禁。
+
+Worker 在收到完整当前 Mandate 与动作前保持待命；收到后才开工。遇到材料性歧义先升级给 Lead，次要假设写进报告；阻塞、重规划、新 anchor 或新 attempt 时停止旧动作，重新核对最新快照并等待新 Mandate。报告必须区分实际回执、未执行检查和风险。
+
+**边界**：提示词与消息合同不替代 core 状态迁移、原生身份绑定、只读 Reviewer、证据门或写域管理。隔离 profile 中的“待命后开工、只报告已有结果、重规划后旧指令失效”三场景必须单独实测，不能由单元测试推导。
 
 ## 安装
 
@@ -136,20 +156,20 @@ dsh plugin --profile desktop add link:/absolute/path/to/dsh-superagent-ptc
 用 SuperAgent PTC 做最小监管闭环：
 super_run create 建 Run；plan 两个工作项，W1 读 README 并给 3 条要点，W2 依赖 W1 本阶段保持 held；
 Worker 继承 super-agent，Reviewer 使用 agent_preset=standard；
-prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evaluate/decide/release；
+prepare/bind 后由 Worker 执行并 report；reported_done 后才 bindReviewer，由 Reviewer 独立记录 coverage 证据并 evaluate/decide/release；
 最后 super_snapshot 报告真实 Run/WorkItem/Mandate/Evidence/Decision ID 与 revision/generation/proof。
 ```
 
-3. 点击 composer 上方的 **Super Agent 监管**，右栏会显示实时 Run 与审计时间线。
+3. 通过会话/subagent 区域的 **SuperAgent PTC** 入口打开右栏，查看实时 Run 与审计时间线。
 
 ## 工具
 
 | 工具 | 动作 | 说明 |
 | --- | --- | --- |
-| `super_run` | `create` `plan` `show` `recover` `complete` | Run 生命周期；`recover` 增加 generation 并重新对账 |
-| `super_anchor` | `show` `apply` `history` | 版本化锚点；纠正会显式失效受影响的工作 |
+| `super_run` | `create` `plan` `show` `replan` `recover` `complete` | Run 生命周期；`replan` 支持用户授权的合同修订，`recover` 增加 generation 并重新对账 |
+| `super_anchor` | `create` `show` `history` | 版本化锚点；纠正会显式失效受影响的工作 |
 | `super_mandate` | `prepare` `bind` `bindReviewer` `report` `show` | 委派合同与原生 SessionId 绑定 |
-| `super_evidence` | `record` `observe` `list` | 分型证据，带写域与来源角色校验 |
+| `super_evidence` | `record` `observe` `verify` `list` | 分型证据与 Host 专项核验，带写域与来源角色校验 |
 | `super_review` | `evaluate` `decide` `release` | 独立验收与放行 |
 | `super_route` | `show` `set` `inspect` `switch` | 当前 Run 的模型策略与有界故障切换 |
 | `super_snapshot` | `{}` | 只读核对 Run / 门禁 / proof / recovery |
@@ -162,7 +182,7 @@ prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evalua
 
 - 面板是**只读投影**：目标/Anchor、模型策略与路由审计、工作项、Mandate、证据与门禁、审计时间线、议程与 attempt。
 - 面板不写状态；只有 `super_*` 工具能穿过 Host 的 CAS 校验修改状态。
-- composer 入口不阻塞输入，普通会话看不到它。
+- 会话/subagent 入口不阻塞输入，普通会话看不到入口与面板。
 
 ## 证据门与边界
 
@@ -187,9 +207,11 @@ prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evalua
 
 ## 验证
 
-- 自动化：**176 / 176 通过**；`typecheck` 与 `build` 均退出码 0。
+- 自动化：**214 / 214 通过**；`typecheck` 与 `build` 均退出码 0。
+- 新增监管回归：`unknown` 后同合同重规划、用户授权的合同修订、PTC 原生实发/实收核验、伪造证据拒绝、Reviewer 完成后唤醒与独立路由切换。
 - 真实桌面运行：两个独立 Electron 会话完成监督闭环，包含跨代恢复、多次 Anchor 修订、独立 Reviewer 放行与 SnapshotProof 对齐。
 - 修复记录：Reviewer 只读守卫曾把 `pwsh "$env:NAME"` 判为写操作，现按参数分类并带回归测试。
+- A 阶段新增六条 Worker 契约及 Lead bind 后原样转发纪律；隔离 profile 的三场景真实委派（待命后开工、只报告已有结果、重规划后旧指令失效）已由独立 native standard Reviewer 放行，原工作项 A 亦已 accepted，详见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 - 细节见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
 ### 已知未知
@@ -203,7 +225,7 @@ prepare/bind/bindReviewer 后由 Reviewer 独立记录 coverage 证据并 evalua
 只有 `super-agent` 会话与已验证的只读 Reviewer 才有工具。确认预设确实切换，并完全重启 DSH。
 
 **Reviewer 一直无法 decide？**
-看门禁返回：`missingEvidence` / `staleEvidence` 需要补新证据；`REVIEWER_NOT_READONLY` 说明 Reviewer 产生过写回执，需要换一个全新的只读 Reviewer。
+看门禁返回：`missingEvidence` / `staleEvidence` 需要补新证据；`REVIEWER_NOT_READONLY` 说明 Reviewer 产生过写回执，需要换一个全新的只读 Reviewer。若 pass decision 后才发现写入，release 会拒绝，且当前 gate=pass 时不能直接 replan/revise；正确顺序是 `super_run recover` 增代 → 同合同 replan → 新 Reviewer、新 attempt、新证据 → decide/release。当前门禁因反证不再 pass 时，才可直接同合同重规划。
 
 **崩溃后怎么恢复？**
 root Lead 调用 `super_run recover`；generation 会增加，旧证据不复用，必须在新 generation 重新取证。

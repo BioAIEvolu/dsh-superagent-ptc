@@ -27,6 +27,7 @@ const obligationSchema = z.object({
   animation: z.string().optional(),
   coverage: z.enum(["full", "partial", "substitute", "unknown"]).optional(),
   sourceId: z.string().optional(),
+  verification: z.literal("mandate_delivery").optional(),
   status: z.enum(["open", "met", "violated", "waived", "superseded"]),
   evidenceIds: z.array(id),
   userWaiver: z.string().optional(),

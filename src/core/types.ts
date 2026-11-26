@@ -135,6 +135,7 @@ export interface ObligationInput {
   animation?: string;
   coverage?: CoverageStatus;
   sourceId?: string;
+  verification?: "mandate_delivery";
 }
 
 export interface Obligation extends ObligationInput {
@@ -312,6 +313,8 @@ export interface ApplyUserInstructionInput extends WriteGuard {
   runId: string;
   instruction: string;
   obligationDelta: ObligationDelta[];
+  /** Full replacement contracts explicitly approved by the user; replanning still requires a fresh attempt and review. */
+  workItemRevisions?: WorkItemInput[];
 }
 
 export interface WorkItemInput {

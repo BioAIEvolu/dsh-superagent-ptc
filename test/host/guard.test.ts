@@ -13,6 +13,18 @@ test("Reviewer guard fails closed for writes, unknown tools and arbitrary PTC ru
   assert.equal(classifyToolSafety("super_run", { action: "complete" }), "write");
   assert.equal(classifyToolSafety("codeflow_map", { action: "graph" }), "read");
   assert.equal(classifyToolSafety("codeflow_map", { action: "init" }), "write");
+  assert.equal(classifyToolSafety("working_directory"), "read");
+  assert.equal(classifyToolSafety("working_directory", {}), "read");
+  assert.equal(classifyToolSafety("working_directory", { cd: "D:/Project/DSH" }), "read");
+  assert.equal(classifyToolSafety("working_directory", { cd: "D:/Project/DSH", unexpected: true }), "unknown");
+  assert.equal(classifyToolSafety("working_directory", { cd: 42 }), "unknown");
+  for (const operation of ["search", "session", "event", "trace", "timeline", "workspaces", "status", "touched"]) {
+    assert.equal(classifyToolSafety("sessiongraph", { operation }), "read");
+  }
+  assert.equal(classifyToolSafety("sessiongraph", {}), "read");
+  assert.equal(classifyToolSafety("sessiongraph", { operation: "index" }), "write");
+  assert.equal(classifyToolSafety("sessiongraph", { operation: "unknown" }), "unknown");
+  assert.equal(classifyToolSafety("super_evidence", { action: "verify" }), "supervisory");
 });
 
 test("only successful native mutating receipts invalidate Reviewer", () => {

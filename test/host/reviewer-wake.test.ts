@@ -52,15 +52,57 @@ async function fixture() {
     expectedRevision: 2, expectedGeneration: 1, workItemId: "item", workerId: worker.id, reviewerId: reviewer.id, knownFailures: [],
   }));
   assert.ok(prepared.ok);
+  const bindWorker = async () => {
+    const bound = await repo.transact(root.id, core => core.bindExecution({
+      expectedRevision: 3, expectedGeneration: 1, mandateId: prepared.value.id, workerAgentId: worker.id,
+    }));
+    assert.ok(bound.ok);
+  };
+  const advanceToReportedDone = async () => {
+    await bindWorker();
+    const reported = await repo.transact(root.id, core => core.reportWorkerDone({
+      expectedRevision: 4, expectedGeneration: 1, mandateId: prepared.value.id, workerId: worker.id, summary: "Worker finished",
+    }));
+    assert.ok(reported.ok);
+    order.length = 0;
+  };
   order.length = 0;
-  return { ctx, repo, table, proofs, root, reviewer, worker, prepared: prepared.value, order, messages, tool: definitions.get("super_mandate")! };
+  return { ctx, repo, table, proofs, root, reviewer, worker, prepared: prepared.value, order, messages, tool: definitions.get("super_mandate")!, bindWorker, advanceToReportedDone };
 }
+
+test("prepared or running Reviewer placeholders cannot bind or wake before reported_done", async () => {
+  const prepared = await fixture();
+  const preparedBefore = prepared.repo.read(prepared.root.id);
+  const early = await prepared.tool.execute({
+    action: "bindReviewer", expectedRevision: 3, expectedGeneration: 1,
+    mandateId: prepared.prepared.id, reviewerAgentId: prepared.reviewer.id,
+  }, { agent: prepared.root, signal: new AbortController().signal });
+  assert.equal(early.ok, false);
+  assert.equal(early.error?.code, "INVALID_TRANSITION");
+  assert.match(early.error?.message ?? "", /reported_done/);
+  assert.equal(prepared.messages.length, 0);
+  assert.deepEqual(prepared.repo.read(prepared.root.id), preparedBefore);
+
+  const running = await fixture();
+  await running.bindWorker();
+  const runningBefore = running.repo.read(running.root.id);
+  const duringWork = await running.tool.execute({
+    action: "bindReviewer", expectedRevision: 4, expectedGeneration: 1,
+    mandateId: running.prepared.id, reviewerAgentId: running.reviewer.id,
+  }, { agent: running.root, signal: new AbortController().signal });
+  assert.equal(duringWork.ok, false);
+  assert.equal(duringWork.error?.code, "INVALID_TRANSITION");
+  assert.equal(running.messages.length, 0);
+  assert.deepEqual(running.repo.read(running.root.id), runningBefore);
+  assert.equal(running.repo.read(running.root.id)?.mandates[running.prepared.id]?.reviewerAgentId, undefined);
+});
 
 test("bindReviewer commits proof/storage/live before native read-only Reviewer wake", async () => {
   const s = await fixture();
+  await s.advanceToReportedDone();
   const exec = { agent: s.root, signal: new AbortController().signal };
   const result = await s.tool.execute({
-    action: "bindReviewer", expectedRevision: 3, expectedGeneration: 1,
+    action: "bindReviewer", expectedRevision: 5, expectedGeneration: 1,
     mandateId: s.prepared.id, reviewerAgentId: s.reviewer.id,
   }, exec);
   assert.equal(result.ok, true);
@@ -86,10 +128,11 @@ test("bindReviewer commits proof/storage/live before native read-only Reviewer w
 test("proof/storage failures never send Reviewer wake or claim binding success", async () => {
   for (const failure of ["proof", "storage"] as const) {
     const s = await fixture();
+    await s.advanceToReportedDone();
     if (failure === "proof") s.proofs.failNextAppend = true;
     else s.table.failNextPut = true;
     const result = await s.tool.execute({
-      action: "bindReviewer", expectedRevision: 3, expectedGeneration: 1,
+      action: "bindReviewer", expectedRevision: 5, expectedGeneration: 1,
       mandateId: s.prepared.id, reviewerAgentId: s.reviewer.id,
     }, { agent: s.root, signal: new AbortController().signal });
     assert.equal(result.ok, false);
@@ -102,9 +145,10 @@ test("proof/storage failures never send Reviewer wake or claim binding success",
 
 test("sendMessage failure reports REVIEWER_WAKE_FAILED without pretending rollback or wake success", async () => {
   const s = await fixture();
+  await s.advanceToReportedDone();
   s.ctx.subagents.sendMessage = async () => { throw new Error("synthetic inbox rejection"); };
   const result = await s.tool.execute({
-    action: "bindReviewer", expectedRevision: 3, expectedGeneration: 1,
+    action: "bindReviewer", expectedRevision: 5, expectedGeneration: 1,
     mandateId: s.prepared.id, reviewerAgentId: s.reviewer.id,
   }, { agent: s.root, signal: new AbortController().signal });
   assert.equal(result.ok, false);

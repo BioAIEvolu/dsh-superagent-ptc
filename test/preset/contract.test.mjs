@@ -11,7 +11,7 @@ const count = (needle) => patch.split(needle).length - 1
 
 test('package identity, exports, files, and DSH engine match the build contract', () => {
   assert.equal(pkg.name, 'dsh-superagent-ptc')
-  assert.equal(pkg.version, '0.1.9')
+  assert.equal(pkg.version, '0.1.10')
   assert.equal(pkg.private, undefined)
   assert.equal(pkg.type, 'module')
   assert.equal(pkg.license, 'MIT')
@@ -212,6 +212,30 @@ test('persona carries roles, anchors, Mandate, evidence gates, budgets, and corr
   for (const text of required) assert.ok(patch.includes(text), 'missing persona rule: ' + text)
   assert.ok(!patch.includes('spawn_teammate'), 'legacy Team API must not be presented as current')
   assert.ok(!patch.includes('agentPreset'), 'model-side preset selection must use agent_preset')
+})
+
+test('persona requires Worker standby/evidence and Lead verbatim forwarding after bind', () => {
+  const required = [
+    '完整当前 Mandate 和 ACTION NOW 前保持待命',
+    '遵循 Mandate 的六条执行契约',
+    '只报告已经实际取得的结果',
+    'replan、新 anchor 或新 attempt 后旧 Mandate/ACTION NOW 立即失效',
+    'prepare/bind 成功后',
+    '原生 send_message',
+    '最新 super_snapshot',
+    'super_mandate show',
+    '原样转发给已绑定 Worker',
+    'ACTION NOW: <当前动作>',
+    '不得改写合同、凭记忆手抄 ID/CAS',
+    'dispatch 动作',
+    'verification=mandate_delivery',
+    'kind=host_contract',
+    'Worker 自报 coverage',
+    'Worker reported_done 后才执行 bindReviewer',
+    'workItemRevisions',
+    '不创建 A2 绕行',
+  ]
+  for (const text of required) assert.ok(patch.includes(text), 'missing execution/forwarding discipline: ' + text)
 })
 
 test('host ESM and wrapped CJS client builds target the declared outputs', () => {

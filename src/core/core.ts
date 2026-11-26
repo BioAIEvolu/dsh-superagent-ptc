@@ -40,6 +40,7 @@ import type {
   SubmitReviewInput,
   SwitchMandateRouteInput,
   WorkItem,
+  WorkItemInput,
   WriteGuard
 } from "./types.ts";
 
@@ -61,7 +62,8 @@ function obligationValid(input: unknown): input is ObligationInput {
     (input.requiredEvidence === undefined || (Array.isArray(input.requiredEvidence) && input.requiredEvidence.every(kind =>
       ["build", "unit", "static", "simulated", "host_contract", "runtime_gui", "animation", "hover", "artifact", "source_hash", "build_hash", "loaded_hash", "host_receipt", "numeric_reconcile", "coverage", "user_feedback"].includes(String(kind))
     ))) &&
-    (input.coverage === undefined || ["full", "partial", "substitute", "unknown"].includes(String(input.coverage)));
+    (input.coverage === undefined || ["full", "partial", "substitute", "unknown"].includes(String(input.coverage))) &&
+    (input.verification === undefined || (input.kind === "coverage" && input.verification === "mandate_delivery"));
 }
 
 function clone<T>(value: T): T {
@@ -182,6 +184,29 @@ function workItemInputValid(value: unknown): value is PlanWorkItemsInput["items"
     (value.hostContractRequired === undefined || typeof value.hostContractRequired === "boolean");
 }
 
+type NormalizedWorkItemContract = WorkItemInput & {
+  hostContractRequired: boolean;
+  mandatory: boolean;
+};
+
+function normalizedWorkItemContract(source: WorkItemInput): NormalizedWorkItemContract {
+  return {
+    id: source.id,
+    title: source.title,
+    dependencies: [...source.dependencies],
+    writeScopes: [...source.writeScopes],
+    acceptance: [...source.acceptance],
+    obligationIds: [...source.obligationIds],
+    gateProfile: source.gateProfile,
+    hostContractRequired: source.hostContractRequired ?? false,
+    mandatory: source.mandatory ?? true
+  };
+}
+
+function sameWorkItemContract(left: WorkItemInput, right: WorkItemInput): boolean {
+  return deepEqual(normalizedWorkItemContract(left), normalizedWorkItemContract(right));
+}
+
 function isMutationReceipt(receipt: Record<string, JsonValue>): boolean {
   if (receipt.write === true) return true;
   const operation = receipt.operation;
@@ -193,6 +218,13 @@ function isMutationReceipt(receipt: Record<string, JsonValue>): boolean {
     "screenshot", "diff", "status", "show", "get", "query", "observe", "run_tests", "typecheck"
   ]);
   return !readOnly.has(normalized);
+}
+
+function independentEvidenceSource(mandate: Mandate | undefined, evidence: Evidence): boolean {
+  if (!mandate) return false;
+  const fromReviewer = evidence.sourceActor === mandate.reviewerId && evidence.sourceRole === "reviewer";
+  const fromObservedHost = evidence.sourceRole === "host" && evidence.receipt.hostObserved === true;
+  return fromReviewer || fromObservedHost;
 }
 
 function coverageMatches(evidence: Evidence, obligation: Obligation): boolean {
@@ -324,6 +356,7 @@ function validateSnapshot(value: unknown): CoreError | null {
         (raw.userWaiver !== undefined && !textValid(raw.userWaiver)) ||
         (raw.sourceId !== undefined && !textValid(raw.sourceId, 1000)) ||
         (raw.animation !== undefined && !textValid(raw.animation, 1000)) ||
+        (raw.verification !== undefined && (raw.kind !== "coverage" || raw.verification !== "mandate_delivery")) ||
         (raw.requiredEvidence !== undefined && !validStringArray(raw.requiredEvidence))) return invalid("invalid obligation " + id);
     for (const evidenceId of raw.evidenceIds) if (!evidence[evidenceId]) return invalid("obligation references unknown evidence");
   }
@@ -989,6 +1022,37 @@ export class SuperAgentCore {
     if (input.runId !== state.run.id) return this.reject(error("RUN_NOT_FOUND", "runId does not belong to this core"));
     if (!textValid(input.instruction)) return this.reject(error("INVALID_TRANSITION", "instruction must be bounded non-empty text"));
     if (!Array.isArray(input.obligationDelta)) return this.reject(error("INVALID_INPUT", "obligationDelta must be an array"));
+    const revisionInputs = input.workItemRevisions === undefined ? [] : input.workItemRevisions;
+    if (!Array.isArray(revisionInputs) || revisionInputs.some(revision => !workItemInputValid(revision))) {
+      return this.reject(error("INVALID_INPUT", "workItemRevisions must contain complete valid work item contracts"));
+    }
+    const revisions: WorkItemInput[] = [];
+    const revisionAudits: { before: WorkItemInput; after: WorkItemInput }[] = [];
+    const revisionIds = new Set<string>();
+    for (const source of revisionInputs) {
+      if (revisionIds.has(source.id)) {
+        return this.reject(error("INVALID_INPUT", "workItemRevisions contains a duplicate work item: " + source.id));
+      }
+      const existing = state.workItems[source.id];
+      if (!existing) {
+        return this.reject(error("INVALID_TRANSITION", "workItemRevisions requires an existing work item: " + source.id));
+      }
+      const currentMandate = existing.currentMandateId ? state.mandates[existing.currentMandateId] : undefined;
+      const hasPassDecision = currentMandate !== undefined && Object.values(state.decisions).some(decision =>
+        decision.workItemId === existing.id && decision.mandateId === currentMandate.id &&
+        decision.reviewerId === currentMandate.reviewerId && decision.attempt === existing.attempt &&
+        decision.anchorVersion === currentMandate.anchorVersion && decision.generation === currentMandate.generation &&
+        decision.result === "pass" && !decision.invalidated
+      );
+      const hasValidPass = hasPassDecision && this.evaluateOn(state, existing.id).result === "pass";
+      if (existing.status === "accepted" || hasValidPass) {
+        return this.reject(error("INVALID_TRANSITION", "accepted work or a current valid pass cannot be replaced by workItemRevisions: " + source.id));
+      }
+      const after = normalizedWorkItemContract(source);
+      revisions.push(after);
+      revisionAudits.push({ before: normalizedWorkItemContract(existing), after });
+      revisionIds.add(source.id);
+    }
     for (const delta of input.obligationDelta) {
       if (!isRecord(delta) || !["add", "amend", "waive", "supersede"].includes(String(delta.op))) {
         return this.reject(error("INVALID_INPUT", "obligationDelta entries must be objects with a supported op"));
@@ -1067,11 +1131,16 @@ export class SuperAgentCore {
         .map(obligation => obligation.id),
       createdAt: this.drivers.now()
     };
+    for (const revision of revisions) {
+      if (revision.obligationIds.some(id => !anchor.obligationSnapshot.includes(id))) {
+        return this.reject(error("OBLIGATION_OPEN", "work item revision references an unknown obligation: " + revision.id));
+      }
+    }
     next.anchors[anchorId] = anchor;
     oldAnchor.supersededBy = anchorId;
     next.run.currentAnchorId = anchorId;
 
-    const affected = new Set<string>();
+    const affected = new Set<string>(revisionIds);
     if (!this.off("anchor")) {
       for (const item of Object.values(next.workItems)) {
         if (item.obligationIds.some(id => changed.has(id))) affected.add(item.id);
@@ -1106,9 +1175,14 @@ export class SuperAgentCore {
       anchorVersion: anchor.version,
       changedObligationIds: [...changed],
       affectedWorkItemIds: [...affected],
-      classification: input.obligationDelta.every(delta => delta.op === "add") && input.obligationDelta.length > 0
-        ? "user_scope_expansion"
-        : "user_instruction"
+      revisedWorkItemIds: revisions.map(revision => revision.id),
+      workItemRevisions: clone(revisions) as unknown as JsonValue,
+      workItemRevisionAudits: clone(revisionAudits) as unknown as JsonValue,
+      classification: revisions.length > 0
+        ? "user_contract_revision"
+        : input.obligationDelta.every(delta => delta.op === "add") && input.obligationDelta.length > 0
+          ? "user_scope_expansion"
+          : "user_instruction"
     }, anchor);
   }
 
@@ -1126,6 +1200,9 @@ export class SuperAgentCore {
     const next = clone(state);
     const all: Record<string, WorkItem> = { ...next.workItems };
     const anchor = next.anchors[next.run.currentAnchorId];
+    const anchorEvents = next.audit.filter(event => event.type === "anchor.applied" && event.payload.anchorId === anchor.id);
+    const anchorEvent = anchorEvents[anchorEvents.length - 1];
+    const approvedRevisions = anchorEvent?.payload.workItemRevisions;
     const batchIds = new Set<string>();
     for (const source of input.items) {
       if (!textValid(source.id) || !textValid(source.title) || source.acceptance.length === 0 ||
@@ -1137,7 +1214,19 @@ export class SuperAgentCore {
       const recoveryReplan = existing && existingMandate && existingMandate.generation !== next.run.generation &&
         (existing.status === "accepted" || existing.status === "reported_done");
       const unknownReplan = existing?.status === "verifying" && existingMandate?.status === "unknown";
-      const replannable = existing && (existing.status === "superseded" || recoveryReplan || unknownReplan);
+      const currentDecisions = existing && existingMandate ? Object.values(next.decisions).filter(decision =>
+        decision.workItemId === existing.id && decision.mandateId === existingMandate.id &&
+        decision.reviewerId === existingMandate.reviewerId && decision.attempt === existing.attempt &&
+        decision.anchorVersion === existingMandate.anchorVersion && decision.generation === existingMandate.generation &&
+        !decision.invalidated
+      ) : [];
+      const latestDecision = currentDecisions[currentDecisions.length - 1];
+      const unknownDecisionReplan = existing?.status === "verifying" && existingMandate?.status === "verifying" &&
+        latestDecision?.result === "unknown";
+      const contradictedPassReplan = existing?.status === "verifying" && existingMandate?.status === "verifying" &&
+        latestDecision?.result === "pass" && this.evaluateOn(next, existing.id).result !== "pass";
+      const sameContractReplan = recoveryReplan || unknownReplan || unknownDecisionReplan || contradictedPassReplan;
+      const replannable = existing && (existing.status === "superseded" || sameContractReplan);
       if (batchIds.has(source.id) || (existing && !replannable)) {
         return this.reject(error("INVALID_TRANSITION", "duplicate active work item: " + source.id));
       }
@@ -1146,11 +1235,20 @@ export class SuperAgentCore {
         return this.reject(error("OBLIGATION_OPEN", "work item references an unknown obligation: " + source.id));
       }
       const previous = next.workItems[source.id];
-      if (recoveryReplan && previous && (!deepEqual(previous.title, source.title) ||
-          !deepEqual(previous.writeScopes, source.writeScopes) ||
-          !deepEqual(previous.acceptance, source.acceptance) ||
-          !deepEqual(previous.obligationIds, source.obligationIds))) {
-        return this.reject(error("INVALID_TRANSITION", "recovery replan must preserve title, obligations, acceptance and write scopes"));
+      if (sameContractReplan && previous && !sameWorkItemContract(previous, source)) {
+        return this.reject(error("INVALID_TRANSITION", "same-contract replan must preserve title, dependencies, writeScopes, acceptance, obligationIds, gateProfile, hostContractRequired and mandatory"));
+      }
+      const approvedRevisionValue = Array.isArray(approvedRevisions)
+        ? approvedRevisions.find(candidate => isRecord(candidate) && candidate.id === source.id)
+        : undefined;
+      const revisionDrivenReplan = existing?.status === "superseded" && Array.isArray(approvedRevisions) && approvedRevisions.length > 0;
+      if (revisionDrivenReplan && workItemInputValid(approvedRevisionValue) &&
+          !sameWorkItemContract(approvedRevisionValue, source)) {
+        return this.reject(error("INVALID_TRANSITION", "replan must match the user-approved work item revision: " + source.id));
+      }
+      if (revisionDrivenReplan && !workItemInputValid(approvedRevisionValue) && previous &&
+          !sameWorkItemContract(previous, source)) {
+        return this.reject(error("INVALID_TRANSITION", "unrevised downstream work item must preserve its complete contract: " + source.id));
       }
       if (previous && replannable) {
         for (const obligationId of previous.obligationIds) {
@@ -1158,17 +1256,10 @@ export class SuperAgentCore {
           if (obligation?.status === "met") obligation.status = "open";
         }
       }
+      const contract = normalizedWorkItemContract(source);
       all[source.id] = {
-        id: source.id,
+        ...contract,
         nativeTaskId: previous?.nativeTaskId,
-        title: source.title,
-        writeScopes: [...source.writeScopes],
-        dependencies: [...source.dependencies],
-        acceptance: [...source.acceptance],
-        obligationIds: [...source.obligationIds],
-        gateProfile: source.gateProfile,
-        hostContractRequired: source.hostContractRequired ?? false,
-        mandatory: source.mandatory ?? true,
         status: "held",
         attempt: previous?.attempt ?? 0,
         failureFingerprints: clone(previous?.failureFingerprints ?? {})
@@ -1295,6 +1386,13 @@ export class SuperAgentCore {
       "Write scopes: " + (nextItem.writeScopes.join(", ") || "none"),
       "Acceptance: " + nextItem.acceptance.join(" | "),
       "Known failures: " + (input.knownFailures.join(" | ") || "none"),
+      "Worker execution contract (六条执行契约):",
+      "1. 不静默改道 / No silent rerouting: execute only the current Mandate and ACTION NOW; if blocked or superseded, stop and report instead of changing task, scope, or route.",
+      "2. 读后再改 / Read before edit: inspect every target and its current content before editing; never overwrite an unread file.",
+      "3. 写域不外扩 / Stay within write scopes: do not create, modify, format, generate, or delete anything outside writeScopes; declare generated artifacts explicitly.",
+      "4. 歧义分级 / Grade ambiguity: resolve discoverable facts by inspection; ask the Lead about material ambiguity and record minor assumptions instead of hiding them.",
+      "5. 按验收自验 / Verify against acceptance: run the required checks, preserve real receipts, and label unrun or unsupported checks unknown; green tests do not prove live delegation.",
+      "6. 报告自带证据 / Report with evidence: include changed files, commands, receipts, artifacts, assumptions, failures, unfinished work, and risks; use kind/result/sourceActor/sourceRole for evidence receipts.",
       "Return: structured summary plus evidence receipts with kind/result/sourceActor/sourceRole; worker done is not acceptance."
     ].join(String.fromCharCode(10));
     const mandate: Mandate = {
@@ -1366,8 +1464,8 @@ export class SuperAgentCore {
     if (guard) return this.reject(guard);
     const mandate = state.mandates[input.mandateId];
     if (!mandate) return this.reject(error("MANDATE_REQUIRED", "mandate does not exist"));
-    if (!["prepared", "running", "reported_done"].includes(mandate.status)) {
-      return this.reject(error("INVALID_TRANSITION", "reviewer binding requires an active pre-review mandate"));
+    if (!this.off("reviewState") && mandate.status !== "reported_done") {
+      return this.reject(error("INVALID_TRANSITION", "reviewer binding requires worker reported_done"));
     }
     if (!this.off("generation") && mandate.generation !== state.run.generation) {
       return this.reject(error("STALE_GENERATION", "reviewer binding belongs to an old generation"));
@@ -1655,10 +1753,8 @@ export class SuperAgentCore {
         }
         if (evidence.result === "fail") fail("EVIDENCE_FAIL");
         else if (evidence.result === "unknown") markUnknown("EVIDENCE_UNKNOWN");
-        if (!this.off("actor") && mandate) {
-          const fromReviewer = evidence.sourceActor === mandate.reviewerId && evidence.sourceRole === "reviewer";
-          const fromObservedHost = evidence.sourceRole === "host" && evidence.receipt.hostObserved === true;
-          if (!fromReviewer && !fromObservedHost) fail("ACTOR_MISMATCH");
+        if (!this.off("actor") && mandate && !independentEvidenceSource(mandate, evidence)) {
+          fail("ACTOR_MISMATCH");
         }
         if (kind === "build") {
           const exitCode = receiptNumber(evidence, "exitCode");
@@ -1750,6 +1846,14 @@ export class SuperAgentCore {
           markUnknown("COVERAGE_INCOMPLETE");
           continue;
         }
+        const fromObservedHost = evidence.sourceRole === "host" && evidence.receipt.hostObserved === true;
+        if (!this.off("actor") && (!independentEvidenceSource(mandate, evidence) ||
+            (obligation.verification === "mandate_delivery" && !fromObservedHost))) {
+          fail("ACTOR_MISMATCH");
+        }
+        if (receiptString(evidence, "verification") !== obligation.verification) {
+          fail("EVIDENCE_VERIFICATION_MISMATCH");
+        }
         const coverage = receiptString(evidence, "coverage");
         if (evidence.result === "fail" || coverage === "partial" || coverage === "substitute") fail("COVERAGE_INCOMPLETE");
         else if (evidence.result === "unknown" || coverage === "unknown" || coverage !== "full") markUnknown("COVERAGE_INCOMPLETE");
@@ -1820,8 +1924,16 @@ export class SuperAgentCore {
       const obligation = next.obligations[obligationId];
       if (!obligation || obligation.status === "waived" || obligation.status === "superseded") continue;
       if (obligation.kind === "coverage") {
-        const full = currentEvidence.some(entry => entry.kind === "coverage" && entry.result === "pass" &&
-          receiptString(entry, "coverage") === "full" && coverageMatches(entry, obligation));
+        const full = currentEvidence.some(entry => {
+          if (entry.kind !== "coverage" || entry.result !== "pass" ||
+              receiptString(entry, "coverage") !== "full" || !coverageMatches(entry, obligation) ||
+              receiptString(entry, "verification") !== obligation.verification) return false;
+          if (this.off("actor")) return true;
+          if (obligation.verification === "mandate_delivery") {
+            return entry.sourceRole === "host" && entry.receipt.hostObserved === true;
+          }
+          return independentEvidenceSource(mandate, entry);
+        });
         if (full || this.off("coverage")) obligation.status = "met";
       } else {
         obligation.status = "met";

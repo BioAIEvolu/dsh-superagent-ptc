@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.10] - 2026-11-27
+
+### Added
+
+- `prepareMandate` now includes six Worker execution rules in `mandateText`: no silent rerouting, read before edit, no write-scope expansion, graded ambiguity, acceptance-based verification and evidence-backed reporting.
+- Preset persona defines Worker standby/evidence/stale-instruction discipline and requires the Lead to forward the current `mandateText` verbatim after `bind`, appending only one `ACTION NOW` line. No automatic `dispatch` was added.
+- Core and preset contract tests cover the new text; bilingual README and architecture documentation describe the manual handoff and its validation boundary.
+
+### Fixed
+
+- Recovery now supports an explicit same-contract replan after an `unknown` review leaves both the work item and Mandate in `verifying`; a new attempt requires fresh evidence and all contract fields remain unchanged.
+- `super_run replan` accepts user-authorized `workItemRevisions`, creating a new Anchor and preserving invalidated history instead of bypassing a work item with replacement IDs or direct state edits.
+- Native evidence extraction now covers both ordinary `tool/result` and PTC `tool/ptc-dispatch` content. The dedicated `mandate_delivery` Host verification compares native outbound and inbound delegation messages and records source-bound coverage instead of trusting shell-printed `pass` values.
+- Reviewer binding and wake-up now wait for `reported_done`; read-only directory navigation and Session queries are classified by operation while writes, indexing and `run_code` remain forbidden. Plain-text Reviewer result reports to the Lead may cite files already read and tool receipts, without treating those observations as writes; actual file/attachment instructions and permission changes remain forbidden.
+
+### Validation
+
+- 2026-11-27: original work item A accepted in its original session by an independent native standard Reviewer (Anchor v8, attempt 3; Decision result=pass, SnapshotProof verified at revision 66 / generation 4). `a-delivery` and unit/build evidence were Host-observed (`hostObserved=true`); `a-standby`, `a-report-only` and `a-stale` were independently registered by the Reviewer. The earlier `unknown` Decision and superseded attempts are preserved unchanged.
+- `pnpm run typecheck` exit 0; complete `pnpm test` **214/214 pass** (Core 87, Host 90, Preset 12, remaining Client suites); `pnpm run build` exit 0 with `lib/host.mjs` 220.41 kB and the Client bundle rebuilt. Native delivery verification also accepts the first Worker message carried by `agent/inbox/spliced`, without requiring a projected `user/message`. Coverage now requires independent sources, delivery obligations declare their verification semantics, `host_contract` has a dedicated Host producer, stale Reviewer bindings are rejected, contradicted passes can be replanned, and downstream contracts cannot be changed without approval.
+- The three isolated-profile scenarios (standby before work, observed-results-only reporting, invalidating old instructions after replanning) were released by an independent native standard Reviewer in a separate isolated Run; they are small-sample live validations and do not prove drift resistance on every long task. See `docs/VALIDATION.md`.
+- DSH kernel requirement unchanged at the validated baseline `>=0.2.2-rc.5 <0.3.0-0`.
+
 ## [0.1.9] - 2026-11-21
 
 ### Changed

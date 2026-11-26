@@ -55,6 +55,16 @@ export async function assertNativeMember(ctx: Context, root: Agent, sessionId: s
   }
 }
 
+export async function nativeMemberAddresses(ctx: Context, root: Agent, sessionId: string, signal?: AbortSignal): Promise<Set<string>> {
+  if (sessionId === root.id) return new Set([root.id]);
+  const rows = await ctx.subagents.listDescendants(root.id, signal);
+  const row = rows.find(item => item.kind === "child" && item.id === sessionId);
+  if (!row || row.kind !== "child") {
+    throw new HostError("NATIVE_MEMBER_NOT_FOUND", "SessionId is not a readable descendant of the current root", { sessionId });
+  }
+  return new Set([sessionId, ...(typeof row.path === "string" && row.path.length > 0 ? [row.path] : [])]);
+}
+
 export async function readNativeProjection(ctx: Context, root: Agent, signal?: AbortSignal): Promise<NativeProjection> {
   signal?.throwIfAborted();
   // Deliberately no setEnabled call: Team selection belongs to the user/root domain.

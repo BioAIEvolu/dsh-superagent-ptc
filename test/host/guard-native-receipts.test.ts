@@ -51,6 +51,21 @@ test("writes, shell, PTC, unknown actions and conflicting tool identities still 
   assert.equal(violations.at(-1)?.operation, "unknown");
 });
 
+test("working_directory navigation and sessiongraph reads are safe while extra fields/index fail closed", () => {
+  const safe = [
+    ...nativePair(10, "cwd-read", "working_directory", {}),
+    ...nativePair(15, "cwd-navigate", "working_directory", { cd: "D:/Project/DSH" }),
+    ...nativePair(20, "session-search", "sessiongraph", { operation: "search", query: "evidence" }),
+    ...nativePair(30, "session-status", "sessiongraph", { operation: "status" }),
+  ];
+  assert.deepEqual(successfulMutatingEvents(safe), []);
+  const unsafe = [
+    ...nativePair(40, "cwd-unknown", "working_directory", { cd: "D:/Project/DSH", unexpected: true }),
+    ...nativePair(50, "session-index", "sessiongraph", { operation: "index" }),
+  ];
+  assert.deepEqual(successfulMutatingEvents(unsafe).map(item => item.seq), [41, 51]);
+});
+
 test("ordinary standard read results are safe but failed writes are not new violations", () => {
   const events = [
     ...nativePair(1, "read", "read", { file_path: "fixture.txt" }),

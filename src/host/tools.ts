@@ -17,8 +17,15 @@ import {
   type SetModelPolicyInput,
 } from "../core/index.ts";
 import { HostError, errorMessage } from "./errors.ts";
-import { observeNativeEvent, readNativeEvents, resultFromNativeFacts, sanitizeModelReceipt } from "./evidence.ts";
-import { assertNativeMember, rootOf } from "./native.ts";
+import {
+  mandateDeliveryReceipt,
+  observeNativeEvent,
+  readNativeEvents,
+  resultFromNativeFacts,
+  sanitizeModelReceipt,
+  verifyMandateDelivery,
+} from "./evidence.ts";
+import { assertNativeMember, nativeMemberAddresses, rootOf } from "./native.ts";
 import { projectRoot } from "./projection.ts";
 import type { RunRepository } from "./store.ts";
 import { successfulMutatingEvents } from "./guard.ts";
@@ -72,15 +79,39 @@ export function currentMandate(state: RunState | null, mandateId: string): Manda
   return mandate;
 }
 
-export function reviewerSessionId(mandate: Mandate): string {
-  return mandate.reviewerAgentId ?? mandate.reviewerId;
+function coverageTarget(state: RunState, mandate: Mandate, args: Record<string, unknown>): { obligationId: string; sourceId?: string } {
+  const item = state.workItems[mandate.workItemId];
+  const candidates = item.obligationIds.flatMap(id => {
+    const obligation = state.obligations[id];
+    return obligation?.kind === "coverage" &&
+      (obligation as { verification?: unknown }).verification === "mandate_delivery" &&
+      obligation.status !== "superseded" && obligation.status !== "waived" ? [obligation] : [];
+  });
+  const obligationId = args.obligationId === undefined ? undefined : stringArg(args, "obligationId");
+  const sourceId = args.sourceId === undefined ? undefined : stringArg(args, "sourceId");
+  let matches = candidates;
+  if (obligationId) matches = matches.filter(obligation => obligation.id === obligationId);
+  if (sourceId) matches = matches.filter(obligation => obligation.sourceId === sourceId);
+  if (matches.length !== 1 || (candidates.length > 1 && !obligationId && !sourceId)) {
+    throw new HostError("COVERAGE_OBLIGATION_REQUIRED", "coverage verify requires one unambiguous active obligation explicitly marked verification=mandate_delivery", {
+      workItemId: mandate.workItemId,
+      candidateIds: candidates.map(obligation => obligation.id),
+    });
+  }
+  const obligation = matches[0]!;
+  return { obligationId: obligation.id, ...(obligation.sourceId ? { sourceId: obligation.sourceId } : {}) };
 }
+
 function assertRoot(actorId: string, rootId: string): void {
   if (actorId !== rootId) throw new HostError("ACTOR_MISMATCH", "only the native root Lead may perform this operation");
 }
-async function assertReviewerReadonly(ctx: Context, reviewerId: string): Promise<void> {
+async function assertReviewerReadonly(ctx: Context, reviewerId: string, sinceSeq?: number): Promise<void> {
   const events = await readNativeEvents(ctx, reviewerId);
-  const violations = successfulMutatingEvents(events);
+  // Only scan events at/after the reviewer's binding boundary (when provided). Pre-binding
+  // activity (e.g. a SessionId lookup before the Mandate existed) is not part of the
+  // Reviewer's mandate execution and must not retroactively invalidate it.
+  const scoped = sinceSeq === undefined ? events : events.filter(event => Number((event as { seq?: unknown }).seq) >= sinceSeq);
+  const violations = successfulMutatingEvents(scoped);
   if (violations.length) throw new HostError("REVIEWER_NOT_READONLY", "reviewer has successful mutating or unknown native tool receipts", {
     receipts: violations.slice(0, 20).map(item => ({ seq: item.seq, toolName: item.toolName, operation: item.operation })),
   });
@@ -117,6 +148,7 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
       if (action === "replan") return core.applyUserInstruction({
         ...guardArgs(args), runId: repository.read(sessionId)?.run.id ?? "", instruction: stringArg(args, "instruction"),
         obligationDelta: (args.obligationDelta ?? []) as ObligationDelta[],
+        ...(args.workItemRevisions !== undefined ? { workItemRevisions: args.workItemRevisions as WorkItemInput[] } : {}),
       });
       throw new HostError("INVALID_TRANSITION", `unknown super_run action ${action}`);
     }));
@@ -202,6 +234,12 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
     }
     if (action === "bindReviewer") {
       const mandate = currentMandate(state, stringArg(args, "mandateId"));
+      if (mandate.status !== "reported_done") {
+        throw new HostError("INVALID_TRANSITION", "Reviewer binding and wake require the current Worker to be reported_done", {
+          mandateId: mandate.id,
+          status: mandate.status,
+        });
+      }
       const reviewerAgentId = stringArg(args, "reviewerAgentId");
       if (reviewerAgentId === (mandate.workerAgentId ?? mandate.workerId)) throw new HostError("REVIEWER_SAME_AS_WORKER", "Reviewer cannot be the Worker");
       if (reviewerAgentId !== mandate.reviewerId) throw new HostError("ACTOR_MISMATCH", "this adapter binds the prepared native Reviewer; reassignment requires a new Mandate");
@@ -243,6 +281,45 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
     assertRouteSwitchAllowsWork(mandate);
     const workItemId = stringArg(args, "workItemId");
     if (mandate.workItemId !== workItemId) throw new HostError("MANDATE_REQUIRED", "mandate does not belong to workItemId");
+    if (action === "verify") {
+      if (actorId !== sessionId && actorId !== mandate.workerAgentId && actorId !== mandate.reviewerAgentId) {
+        throw new HostError("ACTOR_MISMATCH", "mandate_delivery verify requires the root Lead or the formally bound current Worker/Reviewer");
+      }
+      if (stringArg(args, "verification") !== "mandate_delivery") {
+        throw new HostError("EVIDENCE_VERIFICATION_UNSUPPORTED", "only verification=mandate_delivery is supported");
+      }
+      const kind = args.kind === undefined ? "coverage" : stringArg(args, "kind");
+      if (kind !== "coverage" && kind !== "host_contract") {
+        throw new HostError("EVIDENCE_VERIFICATION_UNSUPPORTED", "mandate_delivery verify supports only kind=coverage or kind=host_contract");
+      }
+      const target = kind === "coverage" ? coverageTarget(state!, mandate, args) : undefined;
+      const workerNativeAgentId = mandate.workerAgentId;
+      if (!workerNativeAgentId) throw new HostError("ACTOR_MISMATCH", "mandate_delivery requires a formally bound current Worker");
+      const workerAddresses = await nativeMemberAddresses(ctx, root, workerNativeAgentId, exec.signal);
+      const [rootEvents, workerEvents] = await Promise.all([
+        readNativeEvents(ctx, sessionId),
+        readNativeEvents(ctx, workerNativeAgentId),
+      ]);
+      const observation = verifyMandateDelivery({
+        mandate, rootNativeAgentId: sessionId, workerNativeAgentId, workerAddresses, rootEvents, workerEvents,
+      });
+      const input: RecordEvidenceInput = {
+        ...guardArgs(args), workItemId, mandateId: mandate.id, attempt: mandate.attempt,
+        kind, result: observation.result,
+        sourceActor: "host", sourceRole: "host",
+        receipt: mandateDeliveryReceipt({
+          mandate, rootNativeAgentId: sessionId, workerNativeAgentId, kind,
+          ...(target ? {
+            obligationId: target.obligationId,
+            ...(target.sourceId ? { sourceId: target.sourceId } : {}),
+          } : {}),
+          observation,
+        }),
+        summary: `Host mandate_delivery ${observation.result}: ${observation.reason}; lead=${sessionId}#${observation.lead?.eventSeq ?? "missing"}; worker=${workerNativeAgentId}#${observation.worker?.eventSeq ?? "missing"}`,
+      };
+      // Dedicated Host verification writes domain evidence directly; its own tool receipt is never evidence input.
+      return success(await repository.transact(sessionId, core => core.recordEvidence(input)));
+    }
     let input: RecordEvidenceInput;
     if (action === "observe") {
       const observedSessionId = typeof args.sessionId === "string" ? args.sessionId : actorId;
@@ -251,8 +328,14 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
       if (typeof eventSeq !== "number") throw new HostError("EVIDENCE_EVENT_NOT_FOUND", "eventSeq is required");
       const observed = await observeNativeEvent(ctx, observedSessionId, eventSeq);
       const kind = stringArg(args, "kind") as EvidenceKind;
-      const reviewerId = reviewerSessionId(mandate);
-      const violations = observedSessionId === reviewerId ? successfulMutatingEvents(observed.events).filter(item => item.seq === eventSeq) : [];
+      if (observed.facts.toolName === "super_evidence" && observed.facts.action === "verify") {
+        throw new HostError("EVIDENCE_EVENT_UNSUPPORTED", "a super_evidence verify receipt cannot be observed again as evidence");
+      }
+      if (kind === "coverage" || kind === "host_contract") {
+        throw new HostError("EVIDENCE_VERIFICATION_REQUIRED", "coverage and host_contract require a dedicated trusted Host verification, not generic shell/tool result text");
+      }
+      const reviewerId = mandate.reviewerAgentId;
+      const violations = reviewerId && observedSessionId === reviewerId ? successfulMutatingEvents(observed.events).filter(item => item.seq === eventSeq) : [];
       const receipt = { ...observed.receipt, ...(violations.length ? { write: true, operation: violations[0].operation } : {}) };
       input = {
         ...guardArgs(args), workItemId, mandateId: mandate.id, attempt: mandate.attempt, kind,
@@ -261,10 +344,15 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
         summary: `Host observed ${observed.facts.toolName ?? "native tool"} at ${observedSessionId}#${eventSeq}`,
       };
     } else if (action === "record") {
-      const isWorker = actorId === (mandate.workerAgentId ?? mandate.workerId);
-      const isReviewer = actorId === reviewerSessionId(mandate);
-      if (!isWorker && !isReviewer) throw new HostError("ACTOR_MISMATCH", "model evidence requires the bound native Worker or Reviewer");
+      const isWorker = mandate.workerAgentId !== undefined && actorId === mandate.workerAgentId;
+      const isReviewer = mandate.reviewerAgentId !== undefined && actorId === mandate.reviewerAgentId;
+      if (!isWorker && !isReviewer) {
+        throw new HostError("ACTOR_MISMATCH", "model evidence requires the formally bound current native Worker or Reviewer");
+      }
       const modelKind = stringArg(args, "kind") as EvidenceKind;
+      if (isWorker && modelKind === "coverage") {
+        throw new HostError("EVIDENCE_VERIFICATION_REQUIRED", "Worker self-reported coverage is forbidden; use an independent Reviewer or dedicated Host verification");
+      }
       if (modelKind === "host_receipt" || modelKind === "host_contract" || modelKind === "user_feedback") {
         throw new HostError("ACTOR_MISMATCH", "host receipts/contracts and user feedback cannot be model-recorded; use their authentic source");
       }
@@ -290,7 +378,10 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
       const workItemId = stringArg(args, "workItemId");
       const currentId = state?.workItems[workItemId]?.currentMandateId;
       const current = currentId ? state?.mandates[currentId] : undefined;
-      if (current && actorId === reviewerSessionId(current)) {
+      if (actorId !== sessionId) {
+        if (!current?.reviewerAgentId || actorId !== current.reviewerAgentId) {
+          throw new HostError("ACTOR_MISMATCH", "Reviewer evaluation requires the formally bound current Reviewer");
+        }
         await assertNativeStandardReviewer(ctx, exec.agent!, exec.signal);
       }
       const gate = repository.evaluate(sessionId).find(item => item.workItemId === workItemId);
@@ -299,9 +390,9 @@ async function executeSuperTool(name: keyof typeof SUPER_TOOL_PARAMETERS, ctx: C
     }
     const mandate = currentMandate(state, stringArg(args, "mandateId"));
     assertRouteSwitchAllowsWork(mandate);
-    const reviewerId = reviewerSessionId(mandate);
-    if (actorId !== reviewerId || actorId === (mandate.workerAgentId ?? mandate.workerId)) {
-      throw new HostError("ACTOR_MISMATCH", "calling native Agent is not the independent bound Reviewer");
+    const reviewerId = mandate.reviewerAgentId;
+    if (!reviewerId || actorId !== reviewerId || actorId === mandate.workerAgentId) {
+      throw new HostError("ACTOR_MISMATCH", "calling native Agent is not the independent formally bound current Reviewer");
     }
     await assertNativeStandardReviewer(ctx, exec.agent!, exec.signal);
     await assertReviewerReadonly(ctx, reviewerId);
@@ -350,7 +441,7 @@ export function registerSuperTools(ctx: Context, repository: RunRepository): () 
     register(ctx, repository, "super_run", "Operate only the current native root Run. Create/show/plan/pause/resume/replan/recover/complete. Recover verifies the last native SnapshotProof before replacing quarantined state.", SUPER_TOOL_PARAMETERS.super_run, args => record(args).action === "show"),
     register(ctx, repository, "super_anchor", "Create/show/list versioned user-instruction anchors for the current root Run.", SUPER_TOOL_PARAMETERS.super_anchor, args => ["show", "history"].includes(String(record(args).action))),
     register(ctx, repository, "super_mandate", "Prepare/bind native execution and Reviewer SessionIds; bound Worker reports done. No aliases or self-reported roles. " + REVIEWER_COMPOSITION_GUIDANCE, SUPER_TOOL_PARAMETERS.super_mandate, args => record(args).action === "show"),
-    register(ctx, repository, "super_evidence", "Record model_reported evidence or observe a real native tool event as host_observed; list current-root evidence.", SUPER_TOOL_PARAMETERS.super_evidence, args => record(args).action === "list"),
+    register(ctx, repository, "super_evidence", "Record model_reported evidence, observe supported native tool facts, or verify mandate_delivery from real Lead/Worker Sessions and directly record host_observed coverage or host_contract; list current-root evidence.", SUPER_TOOL_PARAMETERS.super_evidence, args => record(args).action === "list"),
     register(ctx, repository, "super_review", "Bound read-only Reviewer evaluates/decides/releases the current attempt using valid evidence. " + REVIEWER_COMPOSITION_GUIDANCE, SUPER_TOOL_PARAMETERS.super_review, args => record(args).action === "evaluate"),
     register(ctx, repository, "super_route", "Root Lead sets/shows the Run model policy, inspects actual native child routes, or performs an authorized bounded switch. Does not create Agents or bypass model pools/permissions.", SUPER_TOOL_PARAMETERS.super_route, args => ["show", "inspect"].includes(String(record(args).action))),
     register(ctx, repository, "super_snapshot", "Read the current native root supervision and native execution projection.", {}, () => true),

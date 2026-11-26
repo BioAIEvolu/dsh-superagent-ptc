@@ -28,13 +28,13 @@ ID 与 clock 必须注入。除 `createRun` / `evaluateGate` / `snapshot` 外，
 - `applyUserInstruction`：生成新 Anchor；支持 obligation `add/amend/waive/supersede`。只 supersede 直接引用变更义务的 WorkItem 及其依赖后继；无关 Mandate 保持有效。运行中的外部 Agent 仅标 `needsStop`，实际停止由 host 执行。
 - `planWorkItems`：校验未知依赖、环、空验收、未知义务与并行写域重叠；接受 superseded item 的显式重规划。
 - `prepareMandate` / `bindExecution` / `bindReviewer` / `reportWorkerDone`：准备自包含委派文本、保存原生 Team/Worker/Reviewer ID 引用、接收 Worker 完成报告。Worker 报告只进入 `reported_done`；review 要求同一 Mandate=`reported_done`，release 要求同一 Mandate=`verifying` 且存在当前 worker-done 审计前置。
-- `recordEvidence`：保存分型、分 attempt/anchor/generation 的结构化回执。`timeout/unreadable/malformed` 强制降级为 `unknown`。独立证据必须来自指定 Reviewer，或带 `hostObserved=true` 的可信 host 观测；host 负责从真实执行上下文填充身份。
+- `recordEvidence`：保存分型、分 attempt/anchor/generation 的结构化回执。`timeout/unreadable/malformed` 强制降级为 `unknown`。独立证据必须来自当前 Mandate 正式绑定的 Reviewer，或带 `hostObserved=true` 的可信 Host 观测；Worker 自报 coverage 不能放行。coverage obligation 可显式声明 `verification=mandate_delivery`，此时 receipt 必须具有相同 verification 且由 Host 观测，不能用一次普通投递闭合无关义务。
 - `submitReview`：校验指定独立 Reviewer、Reviewer 只读、证据引用与当前 attempt；`fail/unknown` 可记录但不能放行。
 - `evaluateGate`：只读计算 `pass/fail/unknown`、缺失证据、违反义务、过期证据与原因。
 - `releaseWorkItem`：唯一 `accepted` 入口；重验 Reviewer 只读和完整门禁，再解锁依赖已满足的后继。
 - `recordUserFeedback`：用户拒绝使当前 attempt 永久不可重放，撤销传递依赖后继、重开相关义务并进入 rework/blocked；同 fingerprint 达到预算后拒绝下一 Mandate。用户接受只留审计，不替代技术证据。
 - `completeRun`：要求未豁免义务均 met、mandatory items 均 accepted 且重验总门。
-- `restoreSnapshot(snapshot, nativeReceipts?)`：仅限空实例；校验 `schemaVersion=1`、全部引用、CAS、append-only audit 及 accepted 的 decision→evidence→gate/worker-done 链，随后 generation+1 并立即按原生回执对账。无回执 running 变为 `unknown`，可显式 replan 后开新 attempt；原生 reported_done 回执授权新 generation 审核，但旧 evidence 不可复用。合法历史 accepted 按原 generation 重验并可 complete，也可显式 replan 重验。completed 快照必须有最终 `run.completed` 审计，恢复后一律进入 active 做最终验收，绝不直接 completed。
+- `restoreSnapshot(snapshot, nativeReceipts?)`：仅限空实例；校验 `schemaVersion=2`、全部引用、CAS、append-only audit 及 accepted 的 decision→evidence→gate/worker-done 链，随后 generation+1 并立即按原生回执对账。无回执 running 变为 `unknown`，可显式 replan 后开新 attempt；最新 Decision=unknown 的 verifying/verifying，或 pass 后新增反证使当前门禁不再 pass，也可同合同显式 replan。原生 reported_done 回执授权新 generation 审核，但旧 evidence 不可复用。合法历史 accepted 按原 generation 重验并可 complete，也可显式 replan 重验。completed 快照必须有最终 `run.completed` 审计，恢复后一律进入 active 做最终验收，绝不直接 completed。
 - `setModelPolicy`：在当前 Run 设置精确允许池、Worker/Reviewer 路由和独立重试/切换预算；locked 模式要求非空池及显式双角色路由。
 - `recordRouteFailure`：记录显式模型故障分类；`targetRole` 缺省 worker，可按 reviewer 分别记录实际路由和预算。业务验收、身份、proof、写域、工具参数、认证/权限和 unknown 不自动重试或切换。
 - `switchMandateRoute`：要求 allowFailureSwitch、授权目标、可切换故障记录及剩余预算；追加不可变 RouteSwitch 审计。新执行成果仍须新 Mandate/attempt 和新证据；Reviewer 的 native standard 工具预设不变。

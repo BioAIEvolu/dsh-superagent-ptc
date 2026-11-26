@@ -30,6 +30,18 @@ test("storage schema accepts a real core snapshot including audit", () => {
   assert.equal(parsed.state.audit[0]?.changes.anchors?.[parsed.state.run.currentAnchorId]?.version, 1);
 });
 
+test("storage schema preserves mandate_delivery obligations and rejects unknown verification", () => {
+  const record = validRecord();
+  record.state.obligations.delivery = {
+    id: "delivery", kind: "coverage", text: "Verify actual Mandate delivery",
+    verification: "mandate_delivery", status: "open", evidenceIds: [],
+  };
+  record.state.anchors[record.state.run.currentAnchorId]!.obligationSnapshot.push("delivery");
+  assert.equal(storedRunRecordSchema.parse(record).state.obligations.delivery?.verification, "mandate_delivery");
+  record.state.obligations.delivery.verification = "unrelated_behavior" as never;
+  assert.throws(() => storedRunRecordSchema.parse(record), /verification/);
+});
+
 test("storage schema rejects unknown fields, missing anchors and noncontiguous audit", () => {
   assert.throws(() => storedRunRecordSchema.parse({ ...validRecord(), extra: true }));
   const missingAnchor = validRecord();

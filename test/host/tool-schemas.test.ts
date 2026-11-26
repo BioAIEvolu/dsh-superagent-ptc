@@ -44,8 +44,14 @@ test("read and write actions are explicit in each model schema", () => {
     assert.equal(property.required, true, field);
   }
   assert.deepEqual(obligation.properties.kind.enum, ["requirement", "prohibition", "coverage"]);
+  assert.deepEqual(obligation.properties.verification.enum, ["mandate_delivery"]);
   assert.ok(!("status" in obligation.properties));
   assert.ok(SUPER_TOOL_PARAMETERS.super_evidence.action.enum.includes("observe"));
   assert.ok(SUPER_TOOL_PARAMETERS.super_evidence.action.enum.includes("record"));
+  assert.ok(SUPER_TOOL_PARAMETERS.super_evidence.action.enum.includes("verify"));
+  assert.deepEqual(SUPER_TOOL_PARAMETERS.super_evidence.verification.enum, ["mandate_delivery"]);
+  assert.equal(SUPER_TOOL_PARAMETERS.super_run.workItemRevisions.items.additionalProperties, false);
+  assert.equal(SUPER_TOOL_PARAMETERS.super_run.workItemRevisions.items.properties.id.required, true);
+  assert.equal(SUPER_TOOL_PARAMETERS.super_run.workItemRevisions.items.properties.gateProfile.required, true);
   assert.ok(SUPER_TOOL_PARAMETERS.super_review.action.enum.includes("release"));
 });

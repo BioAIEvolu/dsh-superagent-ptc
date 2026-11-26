@@ -10,9 +10,13 @@ export function isBoundReviewer(ctx: Context, repository: RunRepository, agent: 
   try {
     const root = rootOf(ctx, agent);
     const state = repository.read(root.id);
-    return Object.values(state?.mandates ?? {}).some(mandate =>
-      mandate.status !== "superseded" && mandate.status !== "accepted" &&
-      (mandate.reviewerAgentId ?? mandate.reviewerId) === agent.id);
+    return Object.values(state?.workItems ?? {}).some(item => {
+      const mandate = item.currentMandateId ? state?.mandates[item.currentMandateId] : undefined;
+      return mandate?.workItemId === item.id && mandate.attempt === item.attempt &&
+        mandate.generation === state?.run.generation &&
+        (mandate.status === "reported_done" || mandate.status === "verifying") &&
+        mandate.reviewerAgentId !== undefined && mandate.reviewerAgentId === agent.id;
+    });
   } catch {
     return false;
   }

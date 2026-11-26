@@ -66,10 +66,10 @@ Host 实际注册七项工具，而不是研究草案中的额外 `super_gate` /
 
 | 工具 | 当前动作 | 调用边界 |
 | --- | --- | --- |
-| `super_run` | create/show/plan/pause/resume/replan/complete | 写操作由 root Lead 执行 |
+| `super_run` | create/show/plan/pause/resume/replan/recover/complete | 写操作由 root Lead 执行；replan 可携带用户授权的 `workItemRevisions` |
 | `super_anchor` | create/show/history | 新锚点由 root Lead 创建 |
-| `super_mandate` | prepare/bind/bindReviewer/report/show | Lead 准备和绑定；绑定 Worker report |
-| `super_evidence` | observe/record/list | Host 观测原生事件；绑定 Worker/Reviewer 记录受限回执 |
+| `super_mandate` | prepare/bind/bindReviewer/report/show | Lead 准备和绑定；绑定 Worker report；Reviewer 在 reported_done 后唤醒 |
+| `super_evidence` | observe/record/verify/list | Host 观测原生事件与专项核验；绑定 Worker/Reviewer 记录受限回执 |
 | `super_review` | evaluate/decide/release | 决定和放行仅属绑定 standard Reviewer |
 | `super_route` | show/set/inspect/switch | root Lead 设置策略、读回实际路由、授权有界切换 |
 | `super_snapshot` | 无参数 | 当前 root 的只读组合投影 |
@@ -114,11 +114,28 @@ native root SessionId ── 1:1 ── RunState / proof / repository queue
 | Worker | 继承 super-agent | 当前 PTC `run_code` SDK | 仅当前 Mandate；reported_done 不等于 accepted |
 | Reviewer | **`agent_preset=standard`** | native standard + 条件开放的 super 工具 | 独立、只读、读取当前 preset 投影；写/未知操作 fail closed |
 
-`allowedAgentPresets: [super-agent, standard]` 只允许这两种显式组合。Reviewer 的 super-agent/PTC 组合会在 review 前被拒绝；当前 preset 投影不可读同样失败封闭。
+`allowedAgentPresets: [super-agent, standard]` 只允许这两种显式组合。Reviewer 的 super-agent/PTC 组合会在 review 前被拒绝；当前 preset 投影不可读同样失败封闭。Reviewer 可以提前创建并待命，但 `bindReviewer` 只在 Worker `reported_done` 后执行并唤醒，未正式绑定的 Reviewer 不提前获得监管工具；Lead 不代替 Reviewer 验收。
 
 **Lead 与模型路由边界**：不另设持有任务状态的独立 assess/route Agent。Lead 直接持有 Anchor、义务、Mandate 和原生委派上下文，避免第二权威、双份上下文、额外模型调用及恢复故障点。Worker 默认继承 super-agent 与当前有效路由；spawn 行的 `modelSelection/modelDiscovery` 允许 Lead 显式选择 Worker 模型，但不等于自动路由。未设置 Run `modelPolicy` 时无插件层自动 provider/model 降级；只有显式 `allowFailureSwitch=true` 且满足故障分类、allowlist 和预算时才切换。推荐有界同路由重试和副作用对账。详见 [策略决策](../../research/super-agent-strategy/2026-11-19-decision.md)。
 
-### 3.3 Team 未开启的降级
+### 3.3 Mandate 消息合同与人工交接
+
+`prepareMandate` 在冻结的任务元数据之后生成六条 Worker 执行契约，并存入同一个 `mandateText`：
+
+1. 不静默改道：只执行当前 Mandate/ACTION NOW；阻塞或失效时停止并报告。
+2. 读后再改：编辑前读取目标和现状，不覆盖未读文件。
+3. 写域不外扩：不写入约定之外的文件，生成物也须明确归属。
+4. 歧义分级：可查证事实自行读取；材料性歧义升级给 Lead，小假设如实披露。
+5. 按验收自验：执行对应检查并保留真实回执，未跑/不支持的项目标 unknown。
+6. 报告自带证据：列出文件、命令、回执、产物、假设、失败、未完成与风险。
+
+成功 `bind` 后，Lead 先用最新 `super_snapshot` 取得当前 CAS，再用 `super_mandate show` 读取**当前** `mandateText`，通过原生 `send_message` 原样发给已绑定 Worker，只在末尾追加一行 `ACTION NOW: <当前动作>`。这条纪律不新增 core API，不手抄 ID/CAS，也不提供或调用 `dispatch`。Worker 收到完整合同与动作前待命；replan、新 anchor 或新 attempt 后旧指令失效。
+
+`super_evidence verify` 的 `mandate_delivery` 专项核验读取 root 与绑定 Worker 的原生 Session，比较 Lead 实发和 Worker 实收的当前 Mandate 与动作，直接生成带真实事件引用的 host-observed coverage。Worker 实收既支持普通 `user/message`，也支持首次委派进入 `agent/inbox/spliced.inserted[]` 的形态；缺失或不可读为 unknown，明确错配为 fail。任意 shell 输出的 `result=pass` 不构成该证明。
+
+六条规则在 `src/core/core.ts` 生成，core/preset 契约测试验证文本存在。Lead 的原样转发与 Worker 的实际行为仍是 prompt/协作纪律，不是状态机强制的投递机制。只有真实隔离回路可以验证“待命后开工、只报告已有结果、重规划后旧指令失效”；不能以测试全绿替代。
+
+### 3.4 Team 未开启的降级
 
 Host 只调用 `agentTeams.isEnabled(root)` 读取状态，不主动开启 Team：
 
@@ -184,7 +201,7 @@ Host 的 `agent/request-error` adapter 只影响下一次 attempt，不改写已
 | --- | --- |
 | Run | root sessionId、objective、definitionOfDone、status、currentAnchorId、revision、generation、gatePolicy、可选 modelPolicy |
 | ModelPolicy / RouteFailure / RouteSwitch | 当前 Run 的 locked/balanced/economy/performance 策略、allowlist 与独立重试/切换预算；分类故障、授权切换历史与原因 |
-| Obligation | 稳定 ID、requirement/prohibition/coverage、open/met/violated/waived/superseded、证据与显式 waiver |
+| Obligation | 稳定 ID、requirement/prohibition/coverage、open/met/violated/waived/superseded、证据与显式 waiver；coverage 可选 `verification=mandate_delivery`，用于绑定专用核验语义 |
 | Anchor | version、supersedes/supersededBy、最新指令、DoD、约束、obligationSnapshot |
 | WorkItem | 依赖、writeScopes、acceptance、obligationIds、gateProfile、mandatory、attempt、failureFingerprints |
 | Mandate | 当前 anchor/generation/attempt、Worker/Reviewer、写域、验收、已知失败、原生 ID、needsStop、冻结角色 route/policyRevision/routeReason/routeSwitches |
@@ -240,9 +257,10 @@ Run 状态为 `active | paused | blocked | needs_user | completed`。完成要�
 
 证据分为 `build/unit/static/simulated/host_contract/runtime_gui/animation/hover/artifact/source_hash/build_hash/loaded_hash/host_receipt/numeric_reconcile/coverage/user_feedback`。
 
-- `super_evidence observe` 读取真实原生 `sessionId + eventSeq`，由 Host 从事实推导结果并绑定 Host 来源；
-- `record` 只能由绑定 Worker/Reviewer 提交，明确是 model-reported，不能铸造 hostObserved、host receipt/contract 或 authentic user feedback；
-- 独立验收证据必须来自指定 Reviewer 或可信 Host 观测，Worker 自报不能自我放行；
+- `super_evidence observe` 读取真实原生 `sessionId + eventSeq`，兼容普通 `tool/result` 的 `data.message.content` 与 PTC `tool/ptc-dispatch` 的 `data.content`，由 Host 从事实推导结果并绑定 Host 来源；
+- `super_evidence verify` 是独立专项核验入口：`mandate_delivery` 直接读取原生实发/实收消息，按合同生成 host-observed coverage 或 host_contract，不通过观察自身工具回执制造证据，也不接受任意 shell 的通用 `result` 字段代替业务核验；coverage obligation 必须显式声明 `verification=mandate_delivery`，防止一次投递给无关行为义务盖章；
+- `record` 只能由当前 Mandate 正式绑定的 Worker/Reviewer 提交，明确是 model-reported，不能铸造 hostObserved、host receipt/contract 或 authentic user feedback；prepared reviewerId 和旧 attempt 的绑定不授予新 attempt 权限；
+- 独立验收证据必须来自当前正式绑定的 Reviewer 或可信 Host 观测，Worker 自报 coverage 不能自我放行；`mandate_delivery` 义务还要求 receipt.verification 精确匹配及 hostObserved=true；
 - receipt 采用 allowlist、大小/嵌套/文本限制与敏感键拒绝；核心校验结构和引用，不把任意回执文本当作外部真实性证明。
 
 ### 6.2 三态与 GateProfile
@@ -299,6 +317,9 @@ Core mutation（尚未替换 live core）
 | 历史 completed | 验证最终 `run.completed` 审计后重开 active，再完成一次最终验收，绝不直接恢复 completed |
 | 缺 proof、proof/digest 不符、协调篡改 state+audit | fail closed，不恢复、不提交 |
 | 二次恢复 | 历史 Mandate/evidence 不变，新 recovery Mandate 使用新 ID/generation；反馈证据绑定原 Mandate generation |
+| 最新 Decision=unknown 且 verifying，或 pass 后新增反证使当前门禁不再 pass | 允许同合同显式 replan：完整保留 title/dependencies/writeScopes/acceptance/obligationIds/gateProfile/hostContractRequired/mandatory，开新 attempt 并重新取证；当前门禁仍为 pass 时禁止重规划 |
+| 用户明确修订验收合同 | `super_run replan` 携带 `workItemRevisions`，创建新 Anchor、使旧 Mandate/决定失效并保留审计，再以同 ID plan；accepted 或当前门禁仍为 pass 不得借此绕过，未列入批准的下游合同必须保持原字段 |
+| Reviewer 在 pass 后产生写回执 | release 以 `REVIEWER_NOT_READONLY` 拒绝；当前 gate=pass 时直接 replan/revise 仍拒绝，必须先 `recover` 增代，再同合同 replan、换新 Reviewer 与新 attempt、重新取证后放行 |
 
 inactive、missing、unreadable 或矛盾的 native 状态均为 unknown，不推断外部 Agent 已完成或已停止。
 
@@ -321,6 +342,7 @@ inactive、missing、unreadable 或矛盾的 native 状态均为 unknown，不�
 ### 软纪律或需要额外宿主 seam
 
 - Lead 不直接写实现、禁止其他 goal/命令入口完成、禁止最终回答绕门，需要更全局的 Host 控制；
+- 六条 Worker 契约虽由 core 固定写入消息，遵守程度仍取决于真实模型；Lead 的原样转发由 persona 规定，无自动投递，只有事后 Host 实发/实收文本与身份核验；Reviewer 可向 Lead 发送纯文本验收结果，含只读文件引用和工具回执的结果叙述不等于写入，文件/附件指令与权限变更仍拒绝；
 - writeScopes 仅词法规划合同，不是文件系统 ACL/sandbox；
 - `needsStop` 不等于外部 Agent 已被强制停止；
 - 工具循环频率、模型/provider 路由健康、UI watchdog/quarantine、网络/发布权限仍属宿主；

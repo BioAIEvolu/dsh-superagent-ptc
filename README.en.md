@@ -6,7 +6,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-6f42c1)](https://github.com/deepseek-ai/deepseek-harness)
-[![tests](https://img.shields.io/badge/tests-176%2F176-brightgreen)](docs/VALIDATION.md)
+[![tests](https://img.shields.io/badge/tests-214%2F214-brightgreen)](docs/VALIDATION.md)
 
 > **Long-task supervision layer for DeepSeek Harness** — versioned anchors, bounded delegation, independent acceptance, evidence-gated release.
 
@@ -54,10 +54,12 @@ Long tasks rarely fail because the model cannot write code. They fail because fo
 - **Preset-first**: one agent preset (`SuperAgent PTC`) alongside Standard, Creative, PTC and Minimal; it does not change default models, permissions or other sessions.
 - **Seven supervision tools**: `super_run`, `super_anchor`, `super_mandate`, `super_evidence`, `super_review`, `super_route`, `super_snapshot`, all called through PTC `run_code` instead of adding new script tools.
 - **Native identity binding**: Worker and Reviewer are real native subagents; the Host wakes a bound Reviewer through native `sendMessage`, so the Lead can never play the Reviewer.
+- **Six Worker rules**: every `prepare` writes no silent rerouting, read before edit, no write-scope expansion, graded ambiguity, acceptance-based verification and evidence-backed reporting into `mandateText` for verbatim delivery.
+- **Explicit manual handoff**: after `bind`, the Lead reads the current CAS from `super_snapshot`, reads the current `mandateText` through `super_mandate show`, and forwards it verbatim with only one `ACTION NOW` line; this phase has no automatic `dispatch`.
 - **Independent read-only review**: the Reviewer must use the native `standard` preset; the guard fails closed on writes and unknown shell operations, while `pwsh` read commands (including `$env:` reads) are classified by their actual arguments.
 - **Typed evidence gates**: evidence is `pass / fail / unknown` only; `unknown` never releases; build logs, unit tests and screenshots cannot replace runtime evidence.
 - **Failure budgets and recoverable audit**: the same fingerprint reaching its budget blocks the run; `super_run recover` increases the generation and keeps the full audit trail.
-- **Client visualization**: a right-side supervision panel and a composer entry over a read-only projection.
+- **Client visualization**: a right-side supervision panel and a conversation/subagent entry over a read-only projection; no composer dock is registered.
 - **No global side effects**: ordinary sessions get no `super_*` tools, no prompt section and no panel.
 
 ### What it deliberately does not do
@@ -92,12 +94,30 @@ super_run plan              # work items / dependencies / obligations (open ledg
 super_anchor                # versioned anchor; corrections invalidate affected work
 super_mandate prepare       # freeze work item, write scope, model route, attempt
 super_mandate bind          # bind the native Worker SessionId
-super_mandate bindReviewer  # bind a standard Reviewer and wake it natively
-super_evidence record       # typed, traceable evidence
+# Lead: read CAS from super_snapshot and mandateText from super_mandate show,
+#       forward verbatim with native send_message plus one ACTION NOW line
+super_evidence record       # Worker execution and build/unit receipts
+super_mandate report        # Worker reports done, entering reported_done
+super_mandate bindReviewer  # bind and wake a standard Reviewer only after reported_done
+super_evidence verify       # Host verifies native delivery and records coverage when required
 super_review evaluate       # gate evaluation
 super_review decide/release # release only when the gate passes
 super_snapshot              # read-only check of revision / generation / proof
 ```
+
+### Mandate handoff and Worker discipline
+
+In addition to freezing the work item, anchor/generation/attempt, write scopes, acceptance and routes, `prepareMandate` generates six Worker execution rules: no silent rerouting, read before edit, no write-scope expansion, graded ambiguity, acceptance-based verification and evidence-backed reporting. These are a **core-generated, test-covered message contract**; whether they steer a real model must be observed in a native delegation loop.
+
+After a successful `bind`, the Lead reads the current CAS from `super_snapshot`, reads the **current** `mandateText` through `super_mandate show`, and sends it verbatim to the bound Worker through native `send_message`, appending only `ACTION NOW: <current action>`. The Lead must not rewrite the contract, hand-copy IDs/CAS from memory or invoke a nonexistent `dispatch` action.
+
+For independent delivery verification, call `super_evidence verify` with `verification=mandate_delivery` and select `kind=coverage` or `kind=host_contract` according to the contract. The Host compares the current Mandate sent by the Lead with the Worker's native inbound message and records source-bound evidence. A coverage obligation must explicitly declare `verification=mandate_delivery`; one ordinary delivery cannot close unrelated obligations such as observed-results-only reporting or stale-instruction stopping. Shell-printed `result=pass`, Worker-reported coverage, or an unbound Reviewer's self-report is not independent proof.
+
+When the latest Decision is `unknown` and the work item is stuck at `verifying`, explicitly replan with every contract field unchanged, open a new attempt and collect fresh evidence instead of creating an A2 workaround. A contract correction requires explicit user authorization: call `super_run replan` with `instruction`, any necessary `obligationDelta`, and complete `workItemRevisions`, then `plan` under the new Anchor. History is retained and recovery cannot weaken the gate silently.
+
+A Worker stands by until it receives the complete current Mandate and action. Material ambiguity is escalated to the Lead; minor assumptions are disclosed in the report. On a blocker, replan, new anchor or new attempt, the old action is abandoned: read the latest snapshot and wait for a fresh Mandate. Reports distinguish observed receipts, unrun checks and risks.
+
+**Boundary**: prompts and message contracts do not replace core transitions, native identity binding, the read-only Reviewer, evidence gates or write-scope management. Three scenarios in an isolated profile—standby before work, reporting only observed results, and stale instructions after replanning—require separate live validation; unit tests cannot prove them.
 
 ## Install
 
@@ -136,20 +156,20 @@ dsh plugin --profile desktop add link:/absolute/path/to/dsh-superagent-ptc
 Use SuperAgent PTC for a minimal supervision loop:
 super_run create a Run; plan two work items, W1 reads the README and lists 3 points, W2 depends on W1 and stays held this phase;
 let the Worker inherit super-agent and the Reviewer use agent_preset=standard;
-after prepare/bind/bindReviewer, the Reviewer records coverage evidence and runs evaluate/decide/release;
+after prepare/bind, the Worker executes and reports; only after reported_done does bindReviewer wake the Reviewer, who records coverage evidence and runs evaluate/decide/release;
 finally call super_snapshot and report the real Run/WorkItem/Mandate/Evidence/Decision IDs plus revision/generation/proof.
 ```
 
-3. Click **Super Agent supervision** above the composer; the right panel shows the live run and audit timeline.
+3. Open **SuperAgent PTC** from the conversation/subagent area to view the live run and audit timeline in the right panel.
 
 ## Tools
 
 | Tool | Actions | Notes |
 | --- | --- | --- |
-| `super_run` | `create` `plan` `show` `recover` `complete` | Run lifecycle; `recover` increases the generation and re-reconciles |
-| `super_anchor` | `show` `apply` `history` | Versioned anchors; corrections explicitly invalidate affected work |
+| `super_run` | `create` `plan` `show` `replan` `recover` `complete` | Run lifecycle; `replan` supports user-authorized contract revisions and `recover` increases the generation |
+| `super_anchor` | `create` `show` `history` | Versioned anchors; corrections explicitly invalidate affected work |
 | `super_mandate` | `prepare` `bind` `bindReviewer` `report` `show` | Delegation contract and native SessionId binding |
-| `super_evidence` | `record` `observe` `list` | Typed evidence with write-scope and source-role checks |
+| `super_evidence` | `record` `observe` `verify` `list` | Typed evidence and dedicated Host verification with source-role checks |
 | `super_review` | `evaluate` `decide` `release` | Independent acceptance and release |
 | `super_route` | `show` `set` `inspect` `switch` | Model policy for the current run with bounded failover |
 | `super_snapshot` | `{}` | Read-only check of Run / gate / proof / recovery |
@@ -162,7 +182,7 @@ Every write action carries `expectedRevision` and `expectedGeneration`; conflict
 
 - The panel is a **read-only projection**: objective/Anchor, model policy and routing audit, work items, Mandate, evidence and gates, audit timeline, agenda/attempt.
 - It never writes state; only `super_*` tools can change state, through the Host CAS check.
-- The composer entry never blocks input and is invisible in ordinary sessions.
+- The conversation/subagent entry never blocks input and is invisible in ordinary sessions.
 
 ## Evidence gates and boundaries
 
@@ -187,9 +207,11 @@ Every write action carries `expectedRevision` and `expectedGeneration`; conflict
 
 ## Verification
 
-- Automation: **176 / 176 pass**; `typecheck` and `build` both exit 0.
+- Automation: **214 / 214 pass**; `typecheck` and `build` both exit 0.
+- New supervision regressions cover same-contract replanning after `unknown`, user-authorized contract revisions, native PTC outbound/inbound delivery verification, forged-evidence rejection, Reviewer wake-up after `reported_done`, and independent route switching.
 - Real desktop runs: two independent Electron sessions completed supervision loops, including recovery across generations, repeated Anchor revisions, independent Reviewer release and SnapshotProof agreement.
 - Fixes recorded: the Reviewer read-only guard once classified `pwsh "$env:NAME"` as a write; it now classifies by arguments and has regression tests.
+- Phase A adds six Worker rules and verbatim Lead forwarding after bind; the three isolated-profile live delegation scenarios (standby before work, observed-results-only reporting, invalidating old instructions after replanning) have been released by an independent native standard Reviewer, and original work item A is accepted. Details in [docs/VALIDATION.md](docs/VALIDATION.md).
 - Details: [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ### Known unknown
@@ -203,7 +225,7 @@ Every write action carries `expectedRevision` and `expectedGeneration`; conflict
 Only `super-agent` sessions and a verified, bound read-only Reviewer receive the tools. Confirm the preset actually switched and restart DSH completely.
 
 **The Reviewer cannot decide.**
-Read the gate response: `missingEvidence` / `staleEvidence` means you need new evidence; `REVIEWER_NOT_READONLY` means the Reviewer produced a write receipt and must be replaced by a fresh read-only Reviewer.
+Read the gate response: `missingEvidence` / `staleEvidence` means you need new evidence; `REVIEWER_NOT_READONLY` means the Reviewer produced a write receipt and must be replaced by a fresh read-only Reviewer. If the write is discovered after a pass decision, release is rejected and a direct replan/revise is forbidden while the current gate still passes. Use `super_run recover` to advance the generation, then replan with the same contract, bind a fresh Reviewer and attempt, collect fresh evidence, and only then decide/release. A direct same-contract replan is available only when contradictory evidence makes the current gate non-passing.
 
 **How do I recover after a crash?**
 The root Lead calls `super_run recover`; the generation increases, old evidence is not reused, and new evidence must be collected in the new generation.

@@ -24,6 +24,34 @@ test("native callId-parsed read-only pwsh/bash and review coordination messages 
   assert.equal(classifyToolSafety("pwsh", { command: "Get-ChildItem env:" }), "read");
   assert.equal(classifyToolSafety("pwsh", { command: "Write-Output $env:DSH_SESSION_ID" }), "read");
   assert.equal(classifyToolSafety("send_message", { agent: "lead", message: "Reviewer completed the read-only evidence review." }), "supervisory");
+  const resultWithReadCitation = "Reviewer W1 验收完成，最终判定 PASS，W1 已 release 并 accepted。全程只读，零写入。\n1. read D:\\Project\\DSH\\fixture.txt → ok。\n2. super_snapshot({}) → ok=true。\n3. super_evidence({action:'verify', verification:'mandate_delivery'}) → ok=true。";
+  assert.equal(classifyToolSafety("send_message", { agent: "lead", message: resultWithReadCitation }), "supervisory");
+  assert.deepEqual(successfulMutatingEvents(nativePair(84, "result-report", "send_message", { agent: "lead", message: resultWithReadCitation })), []);
+});
+
+test("Reviewer result-report exception cannot be used as a file instruction or delegation", () => {
+  for (const message of [
+    "验收完成，请 read D:\\Project\\DSH\\fixture.txt 并继续修改",
+    "核验结果，@D:/Project/DSH/fixture.txt 请打开",
+    "PASS accepted，请 edit D:/Project/DSH/fixture.txt",
+    "验收报告，请发送 D:/Project/DSH/fixture.txt 附件",
+    "Reviewer completed review, please open C:/demo/fixture.txt",
+    "Reviewer completed review, send C:/demo/fixture.txt as attachment",
+    "Reviewer completed review, please read /tmp/fixture.txt",
+    "验收完成，零写入。请 write D:/Project/DSH/fixture.txt",
+    "验收完成，请 write D:/Project/DSH/fixture.txt",
+  ]) {
+    assert.equal(classifyToolSafety("send_message", { agent: "lead", message }), "write", message);
+  }
+  assert.equal(classifyToolSafety("send_message", { agent: "other-worker", message: "验收完成，读取 D:/Project/DSH/fixture.txt" }), "write");
+});
+
+test("Reviewer result citations cannot hide instructions on another line", () => {
+  for (const message of [
+    "Reviewer completed review, read D:/fixture.txt -> ok.\nPlease write the next file.",
+    "Reviewer completed review, read D:/fixture.txt -> ok.\nNext: edit another file.",
+    "Reviewer completed review, read D:/fixture.txt -> ok.\nMust create a replacement file.",
+  ]) assert.equal(classifyToolSafety("send_message", { agent: "lead", message }), "write", message);
 });
 
 test("writes, redirection, dangerous commands, file payloads and permission changes fail closed", () => {

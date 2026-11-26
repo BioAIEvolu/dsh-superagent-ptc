@@ -414,24 +414,81 @@ test("P2-2 obligation deltas and all native IDs share text bounds", () => {
     const mutant = setup(["input"]);
     return mutant.core.bindExecution({ mandateId: mutant.mandate.id, nativeTaskId: oversized, workerAgentId: oversized, ...guard(mutant.core) });
   });
-  expectError(execution.core.bindReviewer({ mandateId: execution.mandate.id, reviewerAgentId: oversized, ...guard(execution.core) }), "INVALID_TRANSITION");
+  const reviewerSetup = (disabledChecks: HardCheck[] = []) => {
+    const core = makeCore([], disabledChecks);
+    plan(core, itemInput("a"));
+    const mandate = running(core, "a");
+    report(core, mandate);
+    return { core, mandate };
+  };
+  const reviewerExecution = reviewerSetup();
+  expectError(reviewerExecution.core.bindReviewer({ mandateId: reviewerExecution.mandate.id, reviewerAgentId: oversized, ...guard(reviewerExecution.core) }), "INVALID_TRANSITION");
   mutationEscapes("input", "INVALID_TRANSITION", () => {
-    const mutant = setup(["input"]);
+    const mutant = reviewerSetup(["input"]);
     return mutant.core.bindReviewer({ mandateId: mutant.mandate.id, reviewerAgentId: oversized, ...guard(mutant.core) });
+  });
+});
+
+test("bindReviewer rejects prepared and running mandates before worker reported_done", () => {
+  for (const stage of ["prepared", "running"] as const) {
+    const core = makeCore();
+    plan(core, itemInput("a"));
+    const mandate = stage === "prepared" ? prepare(core, "a") : running(core, "a");
+    const before = state(core);
+    expectError(core.bindReviewer({
+      mandateId: mandate.id, reviewerAgentId: "native-reviewer-session", ...guard(core)
+    }), "INVALID_TRANSITION");
+    assert.deepEqual(state(core), before);
+  }
+  mutationEscapes("reviewState", "INVALID_TRANSITION", () => {
+    const mutant = makeCore([], ["reviewState"]);
+    plan(mutant, itemInput("a"));
+    const mandate = prepare(mutant, "a");
+    return mutant.bindReviewer({ mandateId: mandate.id, reviewerAgentId: "native-reviewer-session", ...guard(mutant) });
   });
 });
 
 test("bindReviewer stores only the native reviewer reference and enforces generation", () => {
   const core = makeCore();
   plan(core, itemInput("a"));
-  const mandate = prepare(core, "a");
+  const mandate = running(core, "a");
+  report(core, mandate);
   const bound = must(core.bindReviewer({ mandateId: mandate.id, reviewerAgentId: "native-reviewer-session", ...guard(core) }));
   assert.equal(bound.reviewerAgentId, "native-reviewer-session");
   must(core.reconcileRecovery({ nativeReceipts: [], ...guard(core) }));
   expectError(core.bindReviewer({ mandateId: mandate.id, reviewerAgentId: "late-reviewer", ...guard(core) }), "STALE_GENERATION");
   const mutant = makeCore([], ["generation"]);
   plan(mutant, itemInput("a"));
-  const old = prepare(mutant, "a");
+  const old = running(mutant, "a");
+  report(mutant, old);
   must(mutant.reconcileRecovery({ nativeReceipts: [], ...guard(mutant) }));
   mutationEscapes("generation", "STALE_GENERATION", () => mutant.bindReviewer({ mandateId: old.id, reviewerAgentId: "late-reviewer", ...guard(mutant) }));
+});
+
+test("obligation verification accepts only coverage mandate_delivery and survives snapshot validation", () => {
+  const invalid = makeEmptyCore();
+  const rejected = invalid.createRun({
+    sessionId: "session", objective: "reject unknown verification", definitionOfDone: "schema is enforced",
+    obligations: [{ id: "bad", kind: "coverage", text: "bad verification", verification: "unrelated" as never }]
+  });
+  expectError(rejected, "INVALID_TRANSITION");
+  assert.equal(invalid.snapshot(), null);
+
+  const wrongKind = makeEmptyCore();
+  const wrongKindResult = wrongKind.createRun({
+    sessionId: "session", objective: "reject misplaced verification", definitionOfDone: "schema is enforced",
+    obligations: [{ id: "bad", kind: "requirement", text: "misplaced verification", verification: "mandate_delivery" }]
+  });
+  expectError(wrongKindResult, "INVALID_TRANSITION");
+  assert.equal(wrongKind.snapshot(), null);
+
+  const valid = makeCore([{ id: "delivery", kind: "coverage", text: "verify actual delivery", coverage: "unknown", verification: "mandate_delivery" }]);
+  const saved = state(valid);
+  const restored = makeEmptyCore();
+  must(restored.restoreSnapshot(saved, [], proofFor(saved)));
+  assert.equal(state(restored).obligations.delivery.verification, "mandate_delivery");
+
+  const forged = structuredClone(saved);
+  forged.obligations.delivery.verification = "unrelated" as never;
+  expectError(makeEmptyCore().restoreSnapshot(forged, [], proofFor(forged)), "SNAPSHOT_INVALID");
 });

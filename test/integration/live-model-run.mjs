@@ -28,15 +28,15 @@ const save = async (name, value) => writeFile(path.join(outputDir, name), JSON.s
 await mkdir(outputDir, { recursive: true })
 
 const prompt = process.env.DSH_LIVE_PROMPT_FILE ? await readFile(process.env.DSH_LIVE_PROMPT_FILE, 'utf8') : `这是独立 super-agent-live 测试会话。请真实执行 Super Agent 监管链，不要只给方案或文字自述。
-文件边界：只允许读取 the fixture file inside the workspace；本阶段不得写任何项目文件。后续第二项唯一允许写入 the result file inside the workspace，但本阶段先不要执行第二项。不得修改其他文件、profile、产品源码或其他会话。
-fixture 内容为两行：fixture-id: super-agent-live；verification-code: alpha-42。
+文件边界：只允许读取工作区 fixture.txt；本阶段不得写任何项目文件。后续第二项唯一允许写入工作区 result.md，但本阶段先不要执行第二项。不得修改其他文件、profile、产品源码或其他会话。
+fixture.txt 内容为两行：fixture-id: super-agent-live；verification-code: alpha-42。
 
 请用当前真实模型与真实原生工具完成第一阶段：
-1. 检查实际可用工具；通过 run_code 内 SDK 的 super_run/super_anchor/super_mandate/super_evidence/super_review/super_snapshot 操作，不要伪造工具回执。创建监管 Run，明确 DoD、写作用域与 obligations：fixture 只读核验、无证据不放行、Worker 不可 self-pass、Reviewer 必须独立且 native standard 只读、第二项只能在第一项 accepted 后执行。
+1. 检查实际可用工具；通过 run_code 内 SDK 的 super_run/super_anchor/super_mandate/super_evidence/super_review/super_snapshot 操作，不要伪造工具回执。创建监管 Run，明确 DoD、写作用域与 obligations：fixture 只读核验（coverage/full、sourceId=fixture.txt）、原生投递核验（coverage/full、verification=mandate_delivery、sourceId=native-mandate-delivery）、无证据不放行、Worker 不可 self-pass、Reviewer 必须独立且 native standard 只读、第二项只能在第一项 accepted 后执行。W1 使用 gateProfile=coverage、hostContractRequired=false，W2 初始 held。
 2. plan 两个有依赖的小工作项：W1 只读核验 fixture 的两项精确内容；W2 依赖 W1，未来在第一项 accepted 后才允许在 validation-live 写 result.md。W2 初始必须 held。给出真实 runId/workItemIds/revisions。
-3. 在正向执行前做负向验证并保留真实回执：无证据 evaluate 不得 pass；尝试 root/Worker self-pass、Worker 与 Reviewer 相同、Reviewer 不符合 native standard 或越权 release，必须失败。只记录实际发生的错误码；不得为了凑错误而伪造。每次检查后确认 W1 未 accepted、W2 仍 held。
-4. 用原生 subagent 启动 Worker，省略 agent_preset 以继承 super-agent，只读核验 fixture。用另一个原生 subagent 启动独立 Reviewer，显式 agent_preset: 'standard'，只读验收。使用两者真实 native SessionId 与 super_mandate prepare/bind/bindReviewer，Worker 通过 super_mandate report 报完成。Reviewer 不得写文件。
-5. 记录或观察真实原生只读工具证据；由 bound standard Reviewer 用 super_review evaluate/decide/release。只有真实有效证据与独立 Reviewer 通过后才释放 W1。
+3. 在正向执行前做负向验证并保留真实回执：无证据 evaluate 不得 pass；尝试 root/Worker self-pass、Worker 自报 coverage、Worker 与 Reviewer 相同、Reviewer 不符合 native standard 或越权 release，必须失败。只记录实际发生的错误码；不得为了凑错误而伪造。每次检查后确认 W1 未 accepted、W2 仍 held。
+4. 创建子 Agent 前用 list_subagent_models 查询授权；Worker 与 Reviewer 均显式请求 ark-agent-plan / glm-5.3-flash / high，若该路由未获授权立即停止。Worker 省略 agent_preset 以继承 super-agent，Reviewer 显式 agent_preset: 'standard'。创建后用 super_route inspect/model.current/request header 读回实际路由，不可读标 unknown。使用两者真实 native SessionId 与 super_mandate prepare/bind；Lead 先发送当前 Mandate 和 ACTION NOW，Worker 执行后通过 super_mandate report 报完成，只有 reported_done 后才 super_mandate bindReviewer 唤醒 Reviewer。Reviewer 不得写文件。
+5. 记录或观察真实原生只读工具证据；由 Reviewer 调 super_evidence verify（verification=mandate_delivery、kind=coverage），由 Host 核对实发与实收并生成 host-observed coverage。Reviewer 独立记录 fixture 的 coverage/full 证据，再用 super_review evaluate/decide/release。只有真实有效证据与独立 Reviewer 通过后才释放 W1。
 6. 验证 W1 accepted 且 W2 从 held 变 ready，然后停止，不要执行 W2、不要创建 result.md。读取 super_snapshot，报告真实 run/workItem/mandate/Worker/Reviewer/evidence/gate IDs、各状态、实际工具链与失败码。若任何能力不可用，明确 unknown 并停止，不要宣称完成。`
 
 const browser = await chromium.launch({ executablePath: chromePath, headless: true, args: ['--disable-dev-shm-usage'] })

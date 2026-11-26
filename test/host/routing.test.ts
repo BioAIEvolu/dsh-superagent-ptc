@@ -172,8 +172,22 @@ test("quota failure switches authorized worker route once and recovery retains p
   assert.equal(restored.state.mandates[s.mandate.id]?.routeSwitches?.length, 1);
 });
 
+test("prepared Reviewer placeholder remains unhandled before formal binding", async () => {
+  const s = await fixture();
+  assert.equal(await adaptNativeModelFailure(s.ctx as never, s.repo, s.reviewer as never,
+    { code: "PROVIDER_UNAVAILABLE", message: "no body" }, new AbortController().signal), "unhandled");
+  assert.equal(Object.keys(s.repo.read(s.root.id)?.routeFailures ?? {}).length, 0);
+});
+
 test("Reviewer failure uses reviewerRoute independently and does not change standard composition", async () => {
   const s = await fixture();
+  // Route adaptation intentionally requires a formally bound Reviewer; a prepared placeholder stays unhandled.
+  assert.ok((await s.repo.transact(s.root.id, core => core.reportWorkerDone({
+    expectedRevision: 5, expectedGeneration: 1, mandateId: s.mandate.id, workerId: s.worker.id, summary: "ready for review",
+  }))).ok);
+  assert.ok((await s.repo.transact(s.root.id, core => core.bindReviewer({
+    expectedRevision: 6, expectedGeneration: 1, mandateId: s.mandate.id, reviewerAgentId: s.reviewer.id,
+  }))).ok);
   assert.equal(await adaptNativeModelFailure(s.ctx as never, s.repo, s.reviewer as never, { code: "PROVIDER_UNAVAILABLE", message: "no body" }, new AbortController().signal), "switch");
   const state = s.repo.read(s.root.id)!;
   const failure = Object.values(state.routeFailures)[0]!;

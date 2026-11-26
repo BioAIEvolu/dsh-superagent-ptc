@@ -29,6 +29,21 @@ test("native failures and contradictory unit counts never become pass", () => {
   assert.equal(resultFromNativeFacts("runtime_gui", extractNativeFacts(toolResult({ exitCode: 0 }), 11)), "unknown");
 });
 
+test("PTC dispatch parses bounded data.content facts with the same fail-closed semantics", () => {
+  const events = [
+    { type: "tool/ptc-dispatch", seq: 21, data: { name: "run_tests", isError: false, content: [{ type: "text", text: JSON.stringify({ passed: 7, failed: 0, total: 7, exitCode: 0 }) }] } },
+  ];
+  const facts = extractNativeFacts(events, 21);
+  assert.equal(facts.toolName, "run_tests");
+  assert.equal(facts.passed, 7);
+  assert.equal(facts.failed, 0);
+  assert.equal(resultFromNativeFacts("unit", facts), "pass");
+  assert.equal(resultFromNativeFacts("build", facts), "pass");
+  const plain = extractNativeFacts([{ type: "tool/ptc-dispatch", seq: 22, data: { content: "passed: 999" } }], 22);
+  assert.equal(plain.passed, undefined);
+  assert.equal(resultFromNativeFacts("unit", plain), "unknown");
+});
+
 test("coverage and host-contract facts remain bound and fail closed", () => {
   const unbound = extractNativeFacts(toolResult({ coverage: "full" }), 11);
   assert.equal(resultFromNativeFacts("coverage", unbound), "unknown");

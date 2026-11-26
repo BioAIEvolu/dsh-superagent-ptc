@@ -118,16 +118,20 @@ test("Ark recovery replan snapshot survives a second restore and keeps immutable
   assert.equal(next.generation, 4);
 });
 
-test("recovery replan cannot expand title, obligations, acceptance or write scopes", () => {
+test("recovery replan locks every contract field", () => {
   const fixture = arkReportedDoneSnapshot();
   const restored = restoreArk(fixture.saved);
   const before = state(restored);
   const original = state(restored).workItems.W1;
   const variants = [
     itemInput("W1", { title: "expanded title" }),
+    itemInput("W1", { dependencies: ["missing"] }),
     itemInput("W1", { writeScopes: ["src/W1", "src/expanded"] }),
     itemInput("W1", { acceptance: ["changed acceptance"] }),
-    itemInput("W1", { obligationIds: ["unknown-obligation"] })
+    itemInput("W1", { obligationIds: ["unknown-obligation"] }),
+    itemInput("W1", { gateProfile: "visual" }),
+    itemInput("W1", { hostContractRequired: true }),
+    itemInput("W1", { mandatory: false })
   ];
   for (const item of variants) {
     const expected = item.obligationIds.includes("unknown-obligation") ? "OBLIGATION_OPEN" : "INVALID_TRANSITION";
@@ -148,6 +152,126 @@ test("ordinary same-generation reported_done cannot be rewritten by planWorkItem
   codeEvidence(core, "W1");
   submitPass(core, "W1");
   assert.equal(must(release(core, "W1")).status, "accepted");
+});
+
+test("latest valid unknown Decision permits same-contract replan with fresh evidence", () => {
+  const core = makeCore();
+  plan(core, itemInput("W1"));
+  const originalMandate = running(core, "W1");
+  report(core, originalMandate);
+  const oldEvidenceIds = codeEvidence(core, "W1").map(entry => entry.id);
+  const originalAttempt = state(core).workItems.W1.attempt;
+  must(core.submitReview({
+    workItemId: "W1", mandateId: originalMandate.id, attempt: originalAttempt,
+    reviewerId: "reviewer", result: "unknown", evidenceIds: oldEvidenceIds, ...guard(core)
+  }));
+  const unknownDecision = Object.values(state(core).decisions).find(decision => decision.mandateId === originalMandate.id);
+  assert.ok(unknownDecision);
+  assert.equal(state(core).workItems.W1.status, "verifying");
+  assert.equal(state(core).mandates[originalMandate.id].status, "verifying");
+
+  plan(core, itemInput("W1"));
+  assert.equal(state(core).workItems.W1.status, "ready");
+  assert.equal(state(core).workItems.W1.currentMandateId, undefined);
+  const next = running(core, "W1");
+  assert.notEqual(next.id, originalMandate.id);
+  assert.equal(next.attempt, originalAttempt + 1);
+  report(core, next);
+  expectError(reviewResult(core, "W1", oldEvidenceIds), "EVIDENCE_MISSING");
+  assert.deepEqual(state(core).decisions[unknownDecision.id], unknownDecision);
+
+  codeEvidence(core, "W1");
+  submitPass(core, "W1");
+  assert.equal(must(release(core, "W1")).status, "accepted");
+});
+
+test("same-generation verifying with a valid pass cannot be replanned", () => {
+  const core = makeCore();
+  plan(core, itemInput("W1"));
+  const mandate = running(core, "W1");
+  report(core, mandate);
+  codeEvidence(core, "W1");
+  submitPass(core, "W1");
+  const before = state(core);
+  expectError(core.planWorkItems({ items: [itemInput("W1")], ...guard(core) }), "INVALID_TRANSITION");
+  assert.deepEqual(state(core), before);
+  assert.equal(must(release(core, "W1")).status, "accepted");
+});
+
+test("unknown-Decision replan rejects every contract mutation atomically", () => {
+  const core = makeCore([{ id: "duty", kind: "requirement", text: "preserve the contracted duty" }]);
+  const original = itemInput("W1", { obligationIds: ["duty"] });
+  plan(core, original);
+  const mandate = running(core, "W1");
+  report(core, mandate);
+  const evidenceIds = codeEvidence(core, "W1").map(entry => entry.id);
+  must(core.submitReview({
+    workItemId: "W1", mandateId: mandate.id, attempt: 1,
+    reviewerId: "reviewer", result: "unknown", evidenceIds, ...guard(core)
+  }));
+  const before = state(core);
+  const variants = [
+    itemInput("W1", { obligationIds: ["duty"], title: "changed title" }),
+    itemInput("W1", { obligationIds: ["duty"], dependencies: ["missing"] }),
+    itemInput("W1", { obligationIds: ["duty"], writeScopes: ["src/expanded"] }),
+    itemInput("W1", { obligationIds: ["duty"], acceptance: ["changed acceptance"] }),
+    itemInput("W1", { obligationIds: [] }),
+    itemInput("W1", { obligationIds: ["duty"], gateProfile: "visual" }),
+    itemInput("W1", { obligationIds: ["duty"], hostContractRequired: true }),
+    itemInput("W1", { obligationIds: ["duty"], mandatory: false })
+  ];
+  for (const item of variants) {
+    expectError(core.planWorkItems({ items: [item], ...guard(core) }), "INVALID_TRANSITION");
+    assert.deepEqual(state(core), before);
+  }
+  plan(core, original);
+  assert.equal(state(core).workItems.W1.status, "ready");
+});
+
+test("post-pass contradictory evidence permits same-contract replan and approved revision", () => {
+  const setup = (result: "fail" | "unknown") => {
+    const core = makeCore();
+    plan(core, itemInput("W1"));
+    const mandate = running(core, "W1");
+    report(core, mandate);
+    codeEvidence(core, "W1");
+    submitPass(core, "W1");
+    evidence(core, "W1", {
+      kind: "build", result, sourceActor: "host", sourceRole: "host",
+      receipt: { exitCode: result === "fail" ? 1 : 0 }
+    });
+    return core;
+  };
+
+  const replanned = setup("fail");
+  expectError(release(replanned, "W1"), "EVIDENCE_FAIL");
+  assert.equal(replanned.evaluateGate("W1").result, "fail");
+  plan(replanned, itemInput("W1"));
+  assert.equal(state(replanned).workItems.W1.status, "ready");
+  const next = running(replanned, "W1");
+  assert.equal(next.attempt, 2);
+  report(replanned, next);
+  codeEvidence(replanned, "W1");
+  submitPass(replanned, "W1");
+  assert.equal(must(release(replanned, "W1")).status, "accepted");
+
+  const revised = setup("unknown");
+  assert.equal(revised.evaluateGate("W1").result, "unknown");
+  const oldDecision = Object.values(state(revised).decisions).find(decision => decision.workItemId === "W1");
+  assert.ok(oldDecision);
+  const revisedContract = itemInput("W1", { title: "User revised contract after contradictory evidence" });
+  must(revised.applyUserInstruction({
+    runId: state(revised).run.id,
+    instruction: "User approves revision because the former pass no longer has a passing gate",
+    obligationDelta: [],
+    workItemRevisions: [revisedContract],
+    ...guard(revised)
+  }));
+  assert.equal(state(revised).decisions[oldDecision.id].invalidated, true);
+  assert.equal(state(revised).workItems.W1.status, "superseded");
+  plan(revised, revisedContract);
+  assert.equal(state(revised).workItems.W1.title, revisedContract.title);
+  assert.equal(state(revised).workItems.W1.status, "ready");
 });
 
 test("Ark old evidence and old decision cannot be replayed into the new attempt", () => {

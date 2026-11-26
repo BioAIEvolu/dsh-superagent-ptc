@@ -51,10 +51,10 @@ const unexpectedFailures = (observations.failures || []).filter(entry =>
 
 add('page-load', observations.navigationError === null && initial.title === 'DeepSeek Harness' ? 'pass' : 'fail',
   '真实系统 Chrome 完成页面导航并渲染 DeepSeek Harness。', ['dom-initial.json', '01-loaded.png'])
-const presetText = 'SuperAgent PTC\nPTC+ 目标锚点 + 有界委派 + 独立验收 + 证据放行；保留未决义务，无证据不放行。'
+const presetText = 'SuperAgent PTC 模式\nPTC+ 目标锚点 + 有界委派 + 独立验收 + 证据放行；保留未决义务，无证据不放行。'
 add('preset-selector-description', presetMenu.bodyText.includes(presetText) ? 'pass' : 'fail',
   '选择器包含 SuperAgent PTC及预期完整描述。', ['dom-preset-menu.json', '02-preset-menu.png'])
-add('blank-session-selection', blankSession && selected.interactive.some(item => item.text === 'SuperAgent PTC') ? 'pass' : 'fail',
+add('blank-session-selection', blankSession && selected.interactive.some(item => item.text === 'SuperAgent PTC 模式') ? 'pass' : 'fail',
   '实际会话列表项 blank=true，且选择器显示 SuperAgent PTC；未发送消息。', ['dom-preset-selected.json', 'runtime-observations.json', '03-preset-selected.png'])
 add('agent-preset', projectionResponse && selectResponse && hostValidation.agentPreset === 'super-agent' ? 'pass' : 'fail',
   'agentPresets/select、session/projections 与宿主投影均为 super-agent。', ['runtime-observations.json', 'host-projection-rpc.json'])
@@ -75,18 +75,19 @@ add('client-mount', clientMounted ? 'pass' : 'fail',
   '客户端模块请求=' + clientModuleRequested + '，style=' + reloaded.plugin.styles + '，footer=' + footer.entryCount
     + '，panel=' + (superPanel.panelUi?.panels || 0) + '。',
   ['dom-reloaded.json', 'dom-subagent-footer.json', 'dom-super-agent-panel.json', 'runtime-observations.json'])
-const footerMounted = footer.entryCount > 0 && footer.entryVisible === true && footer.plugin.entries > 0
-add('composer-entry', footerMounted ? 'pass' : 'fail',
-  footerMounted ? 'Super Agent 监管入口已在 composer 真实挂载并可见。'
-    : 'composer 的 Super Agent 监管入口不存在或不可见，entryCount=' + footer.entryCount
-      + '，entryVisible=' + footer.entryVisible + '。',
-  ['dom-subagent-footer.json', ...(footerMounted ? ['05c-subagent-footer.png'] : [])])
+const composerDockAbsent = footer.entryCount === 0 && footer.entryVisible === false && footer.plugin.entries === 0
+add('composer-dock-absent', composerDockAbsent ? 'pass' : 'fail',
+  composerDockAbsent ? '按用户既定决定，空白会话未注册或显示 composer dock。'
+    : 'composer dock 按决定应移除，但当前 entryCount=' + footer.entryCount + '，entryVisible=' + footer.entryVisible + '。',
+  ['dom-subagent-footer.json'])
 const rightMounted = superPanel.panelUi?.panels > 0 && superPanel.panelUi?.unavailableAlerts === 0
   && /当前会话尚无监管 Run/.test(superPanel.panelUi?.emptyRun || '')
   && /Host 观察时间/.test(superPanel.panelUi?.observedAt || '')
-add('right-sidebar-entry', rightMounted ? 'pass' : 'fail',
+add('right-sidebar-entry', rightMounted ? 'pass' : footer.entryVisible ? 'fail' : 'unknown',
   rightMounted ? '已通过真实 footer 入口打开右栏；面板 RPC 完成，显示空 Run 和 Host 观察时间，无 unavailable。'
-    : '未能通过 footer 打开真实右栏空 Run 面板；入口或面板/RPC 状态不满足验收。',
+    : footer.entryVisible
+      ? 'footer 入口可见，但右栏空 Run 面板或 RPC 状态不满足验收。'
+      : '空白会话尚无子 Agent/footer 入口；右栏真实委派后的展示保持 unknown，等待真实 Run 验证。',
   ['dom-right-sidebar.json', '05-right-sidebar.png', 'dom-more-tools.json', '05b-more-tools.png', 'dom-super-agent-panel.json', ...(rightMounted ? ['05d-super-agent-panel.png'] : [])])
 for (const [id, label, state, screenshot] of [
   ['standard', '标准模式', standardIsolation, '08-standard.png'],

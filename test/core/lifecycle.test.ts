@@ -229,6 +229,23 @@ test("C16 recovery marks receipt-less running mandate unknown and rejects old ge
   });
 });
 
+test("prepareMandate embeds all six Worker execution contract rules", () => {
+  const core = makeCore();
+  plan(core, itemInput("a"));
+  const mandate = prepare(core, "a");
+  const rules = [
+    "1. 不静默改道 / No silent rerouting:",
+    "2. 读后再改 / Read before edit:",
+    "3. 写域不外扩 / Stay within write scopes:",
+    "4. 歧义分级 / Grade ambiguity:",
+    "5. 按验收自验 / Verify against acceptance:",
+    "6. 报告自带证据 / Report with evidence:"
+  ];
+  assert.ok(mandate.mandateText.includes("Worker execution contract (六条执行契约):"));
+  for (const rule of rules) assert.ok(mandate.mandateText.includes(rule), "missing Worker rule: " + rule);
+  assert.equal(mandate.mandateText.split("\n").filter(line => /^[1-6]\. /.test(line)).length, 6);
+});
+
 test("C17 valid independent evidence releases work and unlocks only satisfied successors", () => {
   const core = makeCore([{ id: "deliver", kind: "requirement", text: "deliver accepted implementation" }]);
   plan(core, [
@@ -296,4 +313,174 @@ test("supersede delta retires only the old obligation and carries the replacemen
   assert.equal(state(core).obligations.old.status, "superseded");
   assert.equal(state(core).obligations.new.status, "open");
   assert.deepEqual(anchor.obligationSnapshot, ["new"]);
+});
+
+test("user-approved workItemRevisions supersedes empty-obligation work and requires fresh acceptance", () => {
+  const core = makeCore();
+  plan(core, itemInput("a", { hostContractRequired: true }));
+  const oldMandate = running(core, "a");
+  report(core, oldMandate);
+  const oldEvidenceIds = codeEvidence(core, "a").map(entry => entry.id);
+  must(core.submitReview({
+    workItemId: "a", mandateId: oldMandate.id, attempt: 1,
+    reviewerId: "reviewer", result: "unknown", evidenceIds: oldEvidenceIds, ...guard(core)
+  }));
+  const before = state(core);
+  const oldAnchor = before.anchors[before.run.currentAnchorId];
+  const oldDecision = Object.values(before.decisions).find(decision => decision.mandateId === oldMandate.id);
+  assert.ok(oldDecision);
+  const revised = itemInput("a", {
+    title: "Behavior acceptance contract",
+    acceptance: ["native delivery and three behavior scenarios are covered"],
+    hostContractRequired: false
+  });
+  const applied = must(core.applyUserInstruction({
+    runId: before.run.id,
+    instruction: "User approves replacing the generic host flag with explicit behavior evidence",
+    obligationDelta: [],
+    workItemRevisions: [revised],
+    ...guard(core)
+  }));
+  assert.equal(applied.version, oldAnchor.version + 1);
+  assert.equal(applied.supersedes, oldAnchor.id);
+  assert.equal(state(core).workItems.a.status, "superseded");
+  assert.equal(state(core).mandates[oldMandate.id].status, "superseded");
+  assert.equal(state(core).decisions[oldDecision.id].invalidated, true);
+  const audit = state(core).audit.at(-1);
+  assert.equal(audit?.type, "anchor.applied");
+  assert.equal(audit?.actor, "user");
+  assert.equal(audit?.payload.classification, "user_contract_revision");
+  assert.deepEqual(audit?.payload.revisedWorkItemIds, ["a"]);
+  const revisionAudit = JSON.stringify(audit?.payload.workItemRevisionAudits);
+  assert.ok(revisionAudit.includes('"hostContractRequired":true'));
+  assert.ok(revisionAudit.includes('"hostContractRequired":false'));
+
+  const beforeWrongPlan = state(core);
+  expectError(core.planWorkItems({
+    items: [itemInput("a", { ...revised, mandatory: false })], ...guard(core)
+  }), "INVALID_TRANSITION");
+  assert.deepEqual(state(core), beforeWrongPlan);
+
+  plan(core, revised);
+  assert.equal(state(core).workItems.a.status, "ready");
+  assert.equal(state(core).workItems.a.hostContractRequired, false);
+  const next = running(core, "a");
+  assert.equal(next.attempt, 2);
+  assert.equal(next.anchorVersion, applied.version);
+  report(core, next);
+  expectError(core.submitReview({
+    workItemId: "a", mandateId: next.id, attempt: next.attempt,
+    reviewerId: "reviewer", result: "pass", evidenceIds: oldEvidenceIds, ...guard(core)
+  }), "EVIDENCE_MISSING");
+  codeEvidence(core, "a");
+  submitPass(core, "a");
+  assert.equal(must(core.releaseWorkItem({ workItemId: "a", reviewerId: "reviewer", ...guard(core) })).status, "accepted");
+});
+
+test("workItemRevisions cannot revoke accepted work or a current valid pass", () => {
+  const attemptRevision = (core: ReturnType<typeof makeCore>) => core.applyUserInstruction({
+    runId: state(core).run.id,
+    instruction: "attempt to replace an already passing contract",
+    obligationDelta: [],
+    workItemRevisions: [itemInput("a", { title: "replacement", hostContractRequired: true })],
+    ...guard(core)
+  });
+  const accepted = makeCore();
+  plan(accepted, itemInput("a"));
+  const acceptedMandate = running(accepted, "a");
+  report(accepted, acceptedMandate);
+  codeEvidence(accepted, "a");
+  submitPass(accepted, "a");
+  must(accepted.releaseWorkItem({ workItemId: "a", reviewerId: "reviewer", ...guard(accepted) }));
+  const acceptedBefore = state(accepted);
+  expectError(attemptRevision(accepted), "INVALID_TRANSITION");
+  assert.deepEqual(state(accepted), acceptedBefore);
+
+  const passing = makeCore();
+  plan(passing, itemInput("a"));
+  const passingMandate = running(passing, "a");
+  report(passing, passingMandate);
+  codeEvidence(passing, "a");
+  submitPass(passing, "a");
+  const passingBefore = state(passing);
+  expectError(attemptRevision(passing), "INVALID_TRANSITION");
+  assert.deepEqual(state(passing), passingBefore);
+  assert.equal(must(passing.releaseWorkItem({ workItemId: "a", reviewerId: "reviewer", ...guard(passing) })).status, "accepted");
+});
+
+test("malformed duplicate and unknown workItemRevisions fail atomically", () => {
+  const core = makeCore();
+  plan(core, itemInput("a"));
+  const before = state(core);
+  const variants: { revisions: unknown; code: string }[] = [
+    { revisions: null, code: "INVALID_INPUT" },
+    { revisions: [null], code: "INVALID_INPUT" },
+    { revisions: [{ ...itemInput("a"), dependencies: undefined }], code: "INVALID_INPUT" },
+    { revisions: [itemInput("a"), itemInput("a")], code: "INVALID_INPUT" },
+    { revisions: [itemInput("missing")], code: "INVALID_TRANSITION" }
+  ];
+  for (const variant of variants) {
+    const result = core.applyUserInstruction({
+      runId: before.run.id,
+      instruction: "invalid contract revision must not commit",
+      obligationDelta: [],
+      workItemRevisions: variant.revisions as never,
+      ...guard(core)
+    });
+    expectError(result, variant.code);
+    assert.deepEqual(state(core), before);
+    assert.equal(result.events.length, 0);
+  }
+});
+
+test("A-only revision locks every downstream B contract field", () => {
+  const core = makeCore([{ id: "duty", kind: "requirement", text: "preserve B duty" }]);
+  const originalA = itemInput("a");
+  const originalB = itemInput("b", { dependencies: ["a"], obligationIds: ["duty"] });
+  plan(core, [originalA, originalB]);
+  const revisedA = itemInput("a", { title: "User revised A only" });
+  must(core.applyUserInstruction({
+    runId: state(core).run.id,
+    instruction: "User approves changing A only",
+    obligationDelta: [],
+    workItemRevisions: [revisedA],
+    ...guard(core)
+  }));
+  assert.equal(state(core).workItems.b.status, "superseded");
+  const before = state(core);
+  const variants = [
+    itemInput("b", { ...originalB, title: "Unapproved B" }),
+    itemInput("b", { ...originalB, dependencies: [] }),
+    itemInput("b", { ...originalB, writeScopes: ["src/b", "src/expanded"] }),
+    itemInput("b", { ...originalB, acceptance: ["unapproved B"] }),
+    itemInput("b", { ...originalB, obligationIds: [] }),
+    itemInput("b", { ...originalB, gateProfile: "visual" }),
+    itemInput("b", { ...originalB, hostContractRequired: true }),
+    itemInput("b", { ...originalB, mandatory: false })
+  ];
+  for (const item of variants) {
+    expectError(core.planWorkItems({ items: [item], ...guard(core) }), "INVALID_TRANSITION");
+    assert.deepEqual(state(core), before);
+  }
+  plan(core, originalB);
+  assert.equal(state(core).workItems.b.status, "held");
+  assert.deepEqual(state(core).workItems.b, {
+    ...state(core).workItems.b,
+    ...originalB,
+    hostContractRequired: false,
+    mandatory: true
+  });
+
+  const approved = makeCore([{ id: "duty", kind: "requirement", text: "preserve B duty" }]);
+  const revisedB = itemInput("b", { dependencies: ["a"], obligationIds: ["duty"], title: "User also revised B" });
+  plan(approved, [originalA, originalB]);
+  must(approved.applyUserInstruction({
+    runId: state(approved).run.id,
+    instruction: "User approves changing both A and B",
+    obligationDelta: [],
+    workItemRevisions: [revisedA, revisedB],
+    ...guard(approved)
+  }));
+  plan(approved, revisedB);
+  assert.equal(state(approved).workItems.b.title, "User also revised B");
 });

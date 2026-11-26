@@ -309,6 +309,91 @@ test("C15 partial/substitute/unknown mandatory coverage cannot complete without 
   });
 });
 
+test("coverage requires independent evidence even without requiredEvidence", () => {
+  const setup = (disabledChecks: HardCheck[] = []) => {
+    const core = makeCore([{ id: "duty", kind: "coverage", text: "independently observed behavior", coverage: "unknown" }], disabledChecks);
+    plan(core, itemInput("coverage", { gateProfile: "coverage", obligationIds: ["duty"] }));
+    const mandate = running(core, "coverage");
+    report(core, mandate);
+    evidence(core, "coverage", {
+      kind: "coverage", sourceActor: "worker", sourceRole: "worker",
+      receipt: { obligationId: "duty", coverage: "full" }
+    });
+    return core;
+  };
+  const normal = setup();
+  assert.equal(normal.evaluateGate("coverage").result, "fail");
+  assert.ok(normal.evaluateGate("coverage").reasons.includes("ACTOR_MISMATCH"));
+  const current = state(normal).workItems.coverage;
+  const review = {
+    workItemId: "coverage", mandateId: current.currentMandateId ?? "", attempt: current.attempt,
+    reviewerId: "reviewer", result: "pass" as const, evidenceIds: allCurrentEvidenceIds(normal, "coverage")
+  };
+  expectError(normal.submitReview({ ...review, ...guard(normal) }), "ACTOR_MISMATCH");
+  mutationEscapes("actor", "ACTOR_MISMATCH", () => {
+    const mutant = setup(["actor"]);
+    const item = state(mutant).workItems.coverage;
+    return mutant.submitReview({
+      workItemId: "coverage", mandateId: item.currentMandateId ?? "", attempt: item.attempt,
+      reviewerId: "reviewer", result: "pass", evidenceIds: allCurrentEvidenceIds(mutant, "coverage"), ...guard(mutant)
+    });
+  });
+
+  evidence(normal, "coverage", { kind: "coverage", receipt: { obligationId: "duty", coverage: "full" } });
+  submitPass(normal, "coverage");
+  assert.equal(must(normal.releaseWorkItem({ workItemId: "coverage", reviewerId: "reviewer", ...guard(normal) })).status, "accepted");
+  assert.equal(state(normal).obligations.duty.status, "met");
+});
+
+test("mandate_delivery coverage requires exact host verification and cannot launder unrelated obligations", () => {
+  const ready = (obligations: Parameters<typeof makeCore>[0]) => {
+    const core = makeCore(obligations);
+    plan(core, itemInput("coverage", {
+      gateProfile: "coverage",
+      obligationIds: (obligations ?? []).map(obligation => obligation.id)
+    }));
+    const mandate = running(core, "coverage");
+    report(core, mandate);
+    return core;
+  };
+  const unrelated = ready([{ id: "stale-stop", kind: "coverage", text: "stop on stale instructions", coverage: "unknown" }]);
+  const unrelatedEvidence = evidence(unrelated, "coverage", {
+    kind: "coverage", sourceActor: "host", sourceRole: "host",
+    receipt: { obligationId: "stale-stop", coverage: "full", verification: "mandate_delivery" }
+  });
+  const unrelatedItem = state(unrelated).workItems.coverage;
+  expectError(unrelated.submitReview({
+    workItemId: "coverage", mandateId: unrelatedItem.currentMandateId ?? "", attempt: unrelatedItem.attempt,
+    reviewerId: "reviewer", result: "pass", evidenceIds: [unrelatedEvidence.id], ...guard(unrelated)
+  }), "EVIDENCE_VERIFICATION_MISMATCH");
+  assert.notEqual(state(unrelated).workItems.coverage.status, "accepted");
+
+  const modeled = ready([{ id: "delivery", kind: "coverage", text: "verify actual delivery", coverage: "unknown", verification: "mandate_delivery" }]);
+  const modeledEvidence = evidence(modeled, "coverage", {
+    kind: "coverage", receipt: { obligationId: "delivery", coverage: "full", verification: "mandate_delivery" }
+  });
+  const modeledItem = state(modeled).workItems.coverage;
+  expectError(modeled.submitReview({
+    workItemId: "coverage", mandateId: modeledItem.currentMandateId ?? "", attempt: modeledItem.attempt,
+    reviewerId: "reviewer", result: "pass", evidenceIds: [modeledEvidence.id], ...guard(modeled)
+  }), "ACTOR_MISMATCH");
+  assert.notEqual(state(modeled).workItems.coverage.status, "accepted");
+
+  const valid = ready([
+    { id: "stale-stop", kind: "coverage", text: "independently review stale instruction behavior", coverage: "unknown" },
+    { id: "delivery", kind: "coverage", text: "verify actual delivery", coverage: "unknown", verification: "mandate_delivery" }
+  ]);
+  evidence(valid, "coverage", {
+    kind: "coverage", sourceActor: "host", sourceRole: "host",
+    receipt: { obligationId: "delivery", coverage: "full", verification: "mandate_delivery" }
+  });
+  evidence(valid, "coverage", { kind: "coverage", receipt: { obligationId: "stale-stop", coverage: "full" } });
+  submitPass(valid, "coverage");
+  assert.equal(must(valid.releaseWorkItem({ workItemId: "coverage", reviewerId: "reviewer", ...guard(valid) })).status, "accepted");
+  assert.equal(state(valid).obligations.delivery.status, "met");
+  assert.equal(state(valid).obligations["stale-stop"].status, "met");
+});
+
 test("release revalidates reviewer read-only after a passing decision", () => {
   const setup = (disabledChecks: HardCheck[] = []) => {
     const core = makeCore([], disabledChecks);
