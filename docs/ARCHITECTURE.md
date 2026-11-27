@@ -122,18 +122,18 @@ native root SessionId ── 1:1 ── RunState / proof / repository queue
 
 `prepareMandate` 在冻结的任务元数据之后生成六条 Worker 执行契约，并存入同一个 `mandateText`：
 
-1. 不静默改道：只执行当前 Mandate/ACTION NOW；阻塞或失效时停止并报告。
-2. 读后再改：编辑前读取目标和现状，不覆盖未读文件。
-3. 写域不外扩：不写入约定之外的文件，生成物也须明确归属。
-4. 歧义分级：可查证事实自行读取；材料性歧义升级给 Lead，小假设如实披露。
+1. 不静默改道：只执行当前 Mandate/ACTION NOW，保持其目标、验收、写域与既定方案；允许局部实现选择，但不得擅自改变任务边界；阻塞或失效时停止并报告。
+2. 读后再改：编辑前读取目标和现状，不覆盖未读文件；匹配周边代码的现有风格，不做无关重构。
+3. 写域不外扩：不写入约定之外的文件，生成物也须明确归属；目标确实需要写域外的内容时，先完成可独立交付的界内部分，把剩余事项报告 Lead，而不是自行扩域。
+4. 歧义分级：可查证事实自行读取，小假设如实披露；歧义影响目标、验收、安全、公共接口、写域或不可逆操作时，向 Lead 报告 `NEEDS_LEAD_DECISION`，不靠猜测继续。
 5. 按验收自验：执行对应检查并保留真实回执，未跑/不支持的项目标 unknown。
-6. 报告自带证据：列出文件、命令、回执、产物、假设、失败、未完成与风险。
+6. 报告自带证据：列出文件、命令、回执、产物、假设、失败、未完成与风险；最终回答和发给 Lead 的消息本身必须带结果与证据，因为收尾前给 Lead 发过消息时，完成通知不带最终回答。
 
 成功 `bind` 后，Lead 先用最新 `super_snapshot` 取得当前 CAS，再用 `super_mandate show` 读取**当前** `mandateText`，通过原生 `send_message` 原样发给已绑定 Worker，只在末尾追加一行 `ACTION NOW: <当前动作>`。这条纪律不新增 core API，不手抄 ID/CAS，也不提供或调用 `dispatch`。Worker 收到完整合同与动作前待命；replan、新 anchor 或新 attempt 后旧指令失效。
 
 `super_evidence verify` 的 `mandate_delivery` 专项核验读取 root 与绑定 Worker 的原生 Session，比较 Lead 实发和 Worker 实收的当前 Mandate 与动作，直接生成带真实事件引用的 host-observed coverage。Worker 实收既支持普通 `user/message`，也支持首次委派进入 `agent/inbox/spliced.inserted[]` 的形态；缺失或不可读为 unknown，明确错配为 fail。任意 shell 输出的 `result=pass` 不构成该证明。
 
-六条规则在 `src/core/core.ts` 生成，core/preset 契约测试验证文本存在。Lead 的原样转发与 Worker 的实际行为仍是 prompt/协作纪律，不是状态机强制的投递机制。只有真实隔离回路可以验证“待命后开工、只报告已有结果、重规划后旧指令失效”；不能以测试全绿替代。
+六条规则在 `src/core/core.ts` 生成，core 契约测试逐条、逐子句断言文本存在（0.1.10 实现时曾漏写其中四个子句，0.1.11 按批准的设计补齐）。Lead 的原样转发与 Worker 的实际行为仍是 prompt/协作纪律，不是状态机强制的投递机制。只有真实隔离回路可以验证“待命后开工、只报告已有结果、重规划后旧指令失效”；不能以测试全绿替代。
 
 ### 3.4 Team 未开启的降级
 

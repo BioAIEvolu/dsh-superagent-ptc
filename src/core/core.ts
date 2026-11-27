@@ -1387,12 +1387,12 @@ export class SuperAgentCore {
       "Acceptance: " + nextItem.acceptance.join(" | "),
       "Known failures: " + (input.knownFailures.join(" | ") || "none"),
       "Worker execution contract (六条执行契约):",
-      "1. 不静默改道 / No silent rerouting: execute only the current Mandate and ACTION NOW; if blocked or superseded, stop and report instead of changing task, scope, or route.",
-      "2. 读后再改 / Read before edit: inspect every target and its current content before editing; never overwrite an unread file.",
-      "3. 写域不外扩 / Stay within write scopes: do not create, modify, format, generate, or delete anything outside writeScopes; declare generated artifacts explicitly.",
-      "4. 歧义分级 / Grade ambiguity: resolve discoverable facts by inspection; ask the Lead about material ambiguity and record minor assumptions instead of hiding them.",
+      "1. 不静默改道 / No silent rerouting: execute only the current Mandate and ACTION NOW and keep its objective, acceptance, write scopes and selected approach; local implementation choices are allowed, but never change the task boundary on your own; if blocked or superseded, stop and report instead of changing task, scope, or route.",
+      "2. 读后再改 / Read before edit: inspect every target and its current content before editing; never overwrite an unread file; match the existing style of the surrounding code and do not refactor unrelated code.",
+      "3. 写域不外扩 / Stay within write scopes: do not create, modify, format, generate, or delete anything outside writeScopes; declare generated artifacts explicitly; if the goal genuinely needs something outside them, finish the in-scope part that can be delivered on its own and report the rest to the Lead instead of expanding scope.",
+      "4. 歧义分级 / Grade ambiguity: resolve discoverable facts by inspection and record minor assumptions instead of hiding them; when ambiguity affects the objective, acceptance, security, public interfaces, write scopes or irreversible actions, report NEEDS_LEAD_DECISION to the Lead instead of guessing.",
       "5. 按验收自验 / Verify against acceptance: run the required checks, preserve real receipts, and label unrun or unsupported checks unknown; green tests do not prove live delegation.",
-      "6. 报告自带证据 / Report with evidence: include changed files, commands, receipts, artifacts, assumptions, failures, unfinished work, and risks; use kind/result/sourceActor/sourceRole for evidence receipts.",
+      "6. 报告自带证据 / Report with evidence: include changed files, commands, receipts, artifacts, assumptions, failures, unfinished work, and risks; use kind/result/sourceActor/sourceRole for evidence receipts; your final answer and any message to the Lead must themselves carry the result and the evidence, because the completion notice omits your final answer when you send the Lead a message just before finishing.",
       "Return: structured summary plus evidence receipts with kind/result/sourceActor/sourceRole; worker done is not acceptance."
     ].join(String.fromCharCode(10));
     const mandate: Mandate = {

@@ -233,17 +233,51 @@ test("prepareMandate embeds all six Worker execution contract rules", () => {
   const core = makeCore();
   plan(core, itemInput("a"));
   const mandate = prepare(core, "a");
-  const rules = [
-    "1. 不静默改道 / No silent rerouting:",
-    "2. 读后再改 / Read before edit:",
-    "3. 写域不外扩 / Stay within write scopes:",
-    "4. 歧义分级 / Grade ambiguity:",
-    "5. 按验收自验 / Verify against acceptance:",
-    "6. 报告自带证据 / Report with evidence:"
+  // Every clause of the approved contract is asserted on its own rule line, so a shortened rule fails this test.
+  const rules: Array<[string, string[]]> = [
+    ["1. 不静默改道 / No silent rerouting:", [
+      "execute only the current Mandate and ACTION NOW",
+      "keep its objective, acceptance, write scopes and selected approach",
+      "local implementation choices are allowed",
+      "never change the task boundary on your own",
+      "stop and report instead of changing task, scope, or route"
+    ]],
+    ["2. 读后再改 / Read before edit:", [
+      "never overwrite an unread file",
+      "match the existing style of the surrounding code",
+      "do not refactor unrelated code"
+    ]],
+    ["3. 写域不外扩 / Stay within write scopes:", [
+      "do not create, modify, format, generate, or delete anything outside writeScopes",
+      "declare generated artifacts explicitly",
+      "finish the in-scope part that can be delivered on its own",
+      "report the rest to the Lead instead of expanding scope"
+    ]],
+    ["4. 歧义分级 / Grade ambiguity:", [
+      "resolve discoverable facts by inspection",
+      "record minor assumptions instead of hiding them",
+      "report NEEDS_LEAD_DECISION to the Lead instead of guessing"
+    ]],
+    ["5. 按验收自验 / Verify against acceptance:", [
+      "run the required checks",
+      "preserve real receipts",
+      "label unrun or unsupported checks unknown"
+    ]],
+    ["6. 报告自带证据 / Report with evidence:", [
+      "include changed files, commands, receipts, artifacts, assumptions, failures, unfinished work, and risks",
+      "use kind/result/sourceActor/sourceRole for evidence receipts",
+      "must themselves carry the result and the evidence"
+    ]]
   ];
   assert.ok(mandate.mandateText.includes("Worker execution contract (六条执行契约):"));
-  for (const rule of rules) assert.ok(mandate.mandateText.includes(rule), "missing Worker rule: " + rule);
-  assert.equal(mandate.mandateText.split("\n").filter(line => /^[1-6]\. /.test(line)).length, 6);
+  const contractLines = mandate.mandateText.split("\n").filter(line => /^[1-6]\. /.test(line));
+  assert.equal(contractLines.length, rules.length);
+  assert.deepEqual(contractLines.map(line => line.split(":")[0]), rules.map(([rule]) => rule.slice(0, -1)));
+  for (const [rule, clauses] of rules) {
+    const line = contractLines.find(entry => entry.startsWith(rule));
+    assert.ok(line, "missing Worker rule: " + rule);
+    for (const clause of clauses) assert.ok(line.includes(clause), "missing clause in Worker rule: " + rule + " -> " + clause);
+  }
 });
 
 test("C17 valid independent evidence releases work and unlocks only satisfied successors", () => {

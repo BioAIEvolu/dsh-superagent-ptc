@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.1.11] - 2026-11-27
+
+### Fixed
+
+- The `mandateText` Worker execution contract now matches the approved design clause by clause. 0.1.10 wrote the six rule headings but shortened three rules while implementing:
+  - Read-before-edit now also requires matching the existing style of the surrounding code and not refactoring unrelated code.
+  - The write-scope rule now says to finish the in-scope part that can be delivered on its own and report the rest to the Lead instead of expanding scope.
+  - The reporting rule now requires the final answer and any message to the Lead to carry the result and the evidence themselves, because the completion notice omits the final answer when the Worker messages the Lead just before finishing.
+- The no-silent-rerouting rule states that local implementation choices are allowed, and graded ambiguity reports `NEEDS_LEAD_DECISION` for ambiguity that affects the objective, acceptance, security, public interfaces, write scopes or irreversible actions.
+
+### Changed
+
+- The core contract test asserts every sub-clause on its own rule line, so a shortened rule now fails the test instead of passing on its heading.
+- Bilingual README and the architecture doc list the full six rules.
+
+### Docs
+
+- Internal ids in `docs/VALIDATION.md` use 8-character prefixes instead of full identifiers.
+
+### Validation
+
+- 2026-11-27: `pnpm run typecheck` exit 0; complete `pnpm test` **214/214 pass** (Core 87, Host 90, Preset 12, Client 25); `pnpm run build` exit 0 with `lib/host.mjs` 221.17 kB and the Client bundle rebuilt. The rebuilt `lib/host.mjs` contains every added clause.
+- Negative check: with the 0.1.10 contract text temporarily restored in `src/core/core.ts`, the updated core contract test fails on the first missing clause; it passes again once the fix is back.
+- The rules remain a core-generated message contract. This release changes text only: no state machine, persona, tool surface or persistence change, and no new live behaviour validation.
+- DSH kernel requirement unchanged at the validated baseline `>=0.2.2-rc.5 <0.3.0-0`.
+
 ## [0.1.10] - 2026-11-27
 
 ### Added

@@ -107,7 +107,14 @@ super_snapshot              # 只读核对 revision / generation / proof
 
 ### Mandate 交接与 Worker 纪律
 
-`prepareMandate` 除了冻结工作项、anchor/generation/attempt、写域、验收与路由，还固定生成六条 Worker 执行契约：不静默改道、读后再改、写域不外扩、歧义分级、按验收自验、报告自带证据。它们是由 core 生成、测试覆盖的**消息合同**；能否约束真实模型仍须观察原生委派回路。
+`prepareMandate` 除了冻结工作项、anchor/generation/attempt、写域、验收与路由，还固定生成六条 Worker 执行契约。它们是由 core 生成、测试覆盖的**消息合同**；能否约束真实模型仍须观察原生委派回路。
+
+1. **不静默改道**：只执行当前 Mandate 与 `ACTION NOW`，保持其目标、验收、写域与既定方案；允许局部实现选择，但不得擅自改变任务边界。
+2. **读后再改**：编辑前读取目标和现状；匹配周边代码的现有风格，不做无关重构。
+3. **写域不外扩**：不写约定之外的文件；目标确实需要写域外的内容时，先完成可独立交付的界内部分，把剩余事项报告 Lead。
+4. **歧义分级**：可查证的自行读取，小假设如实披露；影响目标、验收、安全、公共接口、写域或不可逆操作的歧义，向 Lead 报告 `NEEDS_LEAD_DECISION`。
+5. **按验收自验**：运行要求的检查并保留真实回执，未跑或不支持的检查标 unknown。
+6. **报告自带证据**：列出改动文件、命令、回执、假设、失败、未完成与风险；最终回答和发给 Lead 的消息本身必须带结果与证据，因为收尾前给 Lead 发过消息时，完成通知不带最终回答。
 
 `bind` 成功后，Lead 先用最新 `super_snapshot` 取得当前 CAS，再用 `super_mandate show` 读取**当前** `mandateText`，通过原生 `send_message` 原样发给已绑定 Worker，只在末尾追加一行 `ACTION NOW: <当前动作>`。不得改写合同、凭记忆手抄 ID/CAS，也不使用尚不存在的 `dispatch`。
 
@@ -212,6 +219,7 @@ prepare/bind 后由 Worker 执行并 report；reported_done 后才 bindReviewer�
 - 真实桌面运行：两个独立 Electron 会话完成监督闭环，包含跨代恢复、多次 Anchor 修订、独立 Reviewer 放行与 SnapshotProof 对齐。
 - 修复记录：Reviewer 只读守卫曾把 `pwsh "$env:NAME"` 判为写操作，现按参数分类并带回归测试。
 - A 阶段新增六条 Worker 契约及 Lead bind 后原样转发纪律；隔离 profile 的三场景真实委派（待命后开工、只报告已有结果、重规划后旧指令失效）已由独立 native standard Reviewer 放行，原工作项 A 亦已 accepted，详见 [docs/VALIDATION.md](docs/VALIDATION.md)。
+- 0.1.11 把六条契约文本与批准的设计逐子句对齐（0.1.10 实现时漏写了其中四处），测试改为逐子句断言；它们仍是文本契约，这一版没有新增行为验证。
 - 细节见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
 ### 已知未知

@@ -107,7 +107,14 @@ super_snapshot              # read-only check of revision / generation / proof
 
 ### Mandate handoff and Worker discipline
 
-In addition to freezing the work item, anchor/generation/attempt, write scopes, acceptance and routes, `prepareMandate` generates six Worker execution rules: no silent rerouting, read before edit, no write-scope expansion, graded ambiguity, acceptance-based verification and evidence-backed reporting. These are a **core-generated, test-covered message contract**; whether they steer a real model must be observed in a native delegation loop.
+In addition to freezing the work item, anchor/generation/attempt, write scopes, acceptance and routes, `prepareMandate` generates six Worker execution rules. These are a **core-generated, test-covered message contract**; whether they steer a real model must be observed in a native delegation loop.
+
+1. **No silent rerouting**: execute only the current Mandate and `ACTION NOW` and keep its objective, acceptance, write scopes and selected approach; local implementation choices are allowed, but never change the task boundary on your own.
+2. **Read before edit**: inspect every target and its current content before editing; match the existing style of the surrounding code and do not refactor unrelated code.
+3. **Stay within write scopes**: when the goal genuinely needs something outside them, finish the in-scope part that can be delivered on its own and report the rest to the Lead instead of expanding scope.
+4. **Grade ambiguity**: resolve discoverable facts by inspection and record minor assumptions; when ambiguity affects the objective, acceptance, security, public interfaces, write scopes or irreversible actions, report `NEEDS_LEAD_DECISION` to the Lead instead of guessing.
+5. **Verify against acceptance**: run the required checks and preserve real receipts; label unrun or unsupported checks unknown.
+6. **Report with evidence**: include changed files, commands, receipts, artifacts, assumptions, failures, unfinished work and risks; your final answer and any message to the Lead must themselves carry the result and the evidence, because the completion notice omits your final answer when you send the Lead a message just before finishing.
 
 After a successful `bind`, the Lead reads the current CAS from `super_snapshot`, reads the **current** `mandateText` through `super_mandate show`, and sends it verbatim to the bound Worker through native `send_message`, appending only `ACTION NOW: <current action>`. The Lead must not rewrite the contract, hand-copy IDs/CAS from memory or invoke a nonexistent `dispatch` action.
 
@@ -212,6 +219,7 @@ Every write action carries `expectedRevision` and `expectedGeneration`; conflict
 - Real desktop runs: two independent Electron sessions completed supervision loops, including recovery across generations, repeated Anchor revisions, independent Reviewer release and SnapshotProof agreement.
 - Fixes recorded: the Reviewer read-only guard once classified `pwsh "$env:NAME"` as a write; it now classifies by arguments and has regression tests.
 - Phase A adds six Worker rules and verbatim Lead forwarding after bind; the three isolated-profile live delegation scenarios (standby before work, observed-results-only reporting, invalidating old instructions after replanning) have been released by an independent native standard Reviewer, and original work item A is accepted. Details in [docs/VALIDATION.md](docs/VALIDATION.md).
+- 0.1.11 aligns the six rule texts with the approved design clause by clause (0.1.10 dropped four sub-clauses while implementing) and the core test now asserts every sub-clause; the rules remain a text contract and this release adds no live behaviour validation.
 - Details: [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ### Known unknown
