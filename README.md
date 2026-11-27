@@ -2,6 +2,10 @@
 
 [![English](https://img.shields.io/badge/English-README-blue)](README.en.md) [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-%E5%BD%93%E5%89%8D-red)](README.md)
 
+<p align="center">
+  <img src="docs/images/zh/hero.svg" alt="SuperAgent PTC：DeepSeek Harness 长任务监督层" width="100%">
+</p>
+
 [![npm 版本](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![npm 下载量](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![许可 MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -35,7 +39,11 @@ PTC：Run + Anchor  →  逐项 Mandate 派给 Worker  →  standard Reviewer �
 - [验证](#验证)
 - [常见问题](#常见问题)
 - [开发](#开发)
+- [参与贡献](#参与贡献)
+- [社区与反馈](#社区与反馈)
+- [友情链接](#友情链接)
 - [致谢](#致谢)
+- [风险提示与免责声明](#风险提示与免责声明)
 - [许可](#许可)
 
 ## 为什么需要它
@@ -252,6 +260,29 @@ pnpm typecheck && pnpm build && pnpm test
 - 保持 `typecheck`、`build`、`test` 全绿；核心状态机改动需要正反例。
 - Issue 与 PR：https://github.com/BioAIEvolu/dsh-superagent-ptc/issues
 
+## 参与贡献
+
+欢迎 Issue 与 PR：
+
+- **报问题**：在 [Issues](https://github.com/BioAIEvolu/dsh-superagent-ptc/issues) 里附上 DSH 版本、复现步骤、预期与实际行为；日志先脱敏再贴。
+- **提改动**：fork 后开分支，保持 `pnpm typecheck && pnpm build && pnpm test` 全绿；核心状态机（`src/core`）的改动需要正反两例测试。
+- **保持聚焦**：一次 PR 只解决一件事，不做无关重构；PR 描述里写清改了什么、怎么验证的（命令与回执）。
+- **安全类问题**：不要在公开 Issue 里贴密钥或完整日志，先脱敏，或在 Issue 中说明已脱敏的部分。
+
+## 社区与反馈
+
+- **问题与建议**：[GitHub Issues](https://github.com/BioAIEvolu/dsh-superagent-ptc/issues)
+- **插件市场与社区目录**：[awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)、DSH → 设置 → 插件 → 发现（索引见[安装](#安装)一节）
+
+这个项目来自一次真实的群聊讨论（见[致谢](#致谢)），欢迎把你在长任务委派里的真实用法、失败案例和改进想法带回来。
+
+## 友情链接
+
+- **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)**：本插件运行的平台。
+- **[awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)**：DSH 插件精选目录，本插件已收录。
+- **[DSH Go](https://github.com/ccch1mneyyy/dsh-Go)**：手机上的 DSH 客户端。
+- **同作者的另外三个 DSH 插件**：[dsh-md-studio](https://github.com/BioAIEvolu/dsh-md-studio)（Markdown 渲染增强）、[dsh-token-tally](https://github.com/BioAIEvolu/dsh-token-tally)（Token 用量统计）、[dsh-pane-find](https://github.com/BioAIEvolu/dsh-pane-find)（面板内查找）。
+
 ## 致谢
 
 这个插件不是凭空想出来的，来自 2026-11-17 一次真实的群聊讨论与源码分享：
@@ -261,9 +292,18 @@ pnpm typecheck && pnpm build && pnpm test
 - **Electron**：把这种形态认作 PTC 的延伸，促使我们确认“PTC 只有 `run_code`，监管必须建立在原生事件链上”。
 - **KOLA 2**：提出定时轮询检查进度、完成即释放下一条命令与审计，以及“主 router 控制 worker”的 SuperAgent 思路，分别影响了 Mandate 的解锁语义与 Lead/Worker/Reviewer 角色划分。
 
-同时感谢上游参考 `zouyuanqing/dsh-super-ptc-mode`（MIT）：参考了其轻量 preset 组合与 Lead 委派理念，persona 与组合已按当前 DSH 契约重写，许可与出处保留在 [NOTICE.md](NOTICE.md)。
+同时感谢上游参考 [zouyuanqing/dsh-super-ptc-mode](https://github.com/zouyuanqing/dsh-super-ptc-mode)（MIT）：参考了其轻量 preset 组合与 Lead 委派理念，persona 与组合已按当前 DSH 契约重写，许可与出处保留在 [NOTICE.md](NOTICE.md)。
 
 也感谢群里持续讨论、提问与纠正的每个人——这些对话让“证据放行”从一句口号变成了可验证的状态机。
+
+## 风险提示与免责声明
+
+本插件是社区开发的第三方项目，与 DeepSeek 无关联，也不代表 DeepSeek。使用前请了解：
+
+- **监管是尽力而为，不是沙箱**：Worker 契约、证据门与只读 Reviewer 约束的是状态机与协作流程，不是操作系统级隔离。`run_code` 与宿主工具仍能产生真实的文件改动与命令执行；把长任务委派给 Agent 前，请先明确写域与验收标准。
+- **费用**：模型请求按你配置的提供方计费；长任务与多 Agent 并行会放大用量与耗时。
+- **请人工复核重要结果**：证据门证明的是“按合同验收过”，不等于结果正确；不可逆操作（删除、发布、对外发送）建议保留人工确认。
+- **无担保**：本软件按“现状”提供（MIT），不附带任何形式的担保，责任限制见 [LICENSE](LICENSE)。
 
 ## 许可
 

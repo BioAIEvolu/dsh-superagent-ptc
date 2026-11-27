@@ -2,6 +2,10 @@
 
 [![English](https://img.shields.io/badge/English-current-blue)](README.en.md) [![Chinese](https://img.shields.io/badge/Chinese-README-red)](README.md)
 
+<p align="center">
+  <img src="docs/images/en/hero.svg" alt="SuperAgent PTC: long-task supervision layer for DeepSeek Harness" width="100%">
+</p>
+
 [![npm version](https://img.shields.io/npm/v/dsh-superagent-ptc?color=cb3837)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![npm downloads](https://img.shields.io/npm/dm/dsh-superagent-ptc?color=blue)](https://www.npmjs.com/package/dsh-superagent-ptc)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -35,7 +39,11 @@ PTC:  Run + Anchor  ->  Mandate per item  ->  standard Reviewer verifies indepen
 - [Verification](#verification)
 - [FAQ](#faq)
 - [Development](#development)
+- [Contributing](#contributing)
+- [Community and feedback](#community-and-feedback)
+- [Friendly links](#friendly-links)
 - [Acknowledgements](#acknowledgements)
+- [Risk notice and disclaimer](#risk-notice-and-disclaimer)
 - [License](#license)
 
 ## Why SuperAgent PTC
@@ -252,6 +260,29 @@ pnpm typecheck && pnpm build && pnpm test
 - Keep `typecheck`, `build` and `test` green; core state-machine changes need positive and negative cases.
 - Issues and PRs: https://github.com/BioAIEvolu/dsh-superagent-ptc/issues
 
+## Contributing
+
+Issues and PRs are welcome:
+
+- **Reporting a problem**: open a GitHub [issue](https://github.com/BioAIEvolu/dsh-superagent-ptc/issues) with your DSH version, reproduction steps, expected vs. actual behavior; sanitize logs before pasting.
+- **Proposing changes**: fork, branch, and keep `pnpm typecheck && pnpm build && pnpm test` green; changes to the core state machine (`src/core`) need both positive and negative test cases.
+- **Stay focused**: one thing per PR, no unrelated refactoring; describe what changed and how you verified it (commands and receipts) in the PR description.
+- **Security-sensitive reports**: do not paste secrets or raw logs into public issues — sanitize first, and say what you removed.
+
+## Community and feedback
+
+- **Issues and ideas**: [GitHub Issues](https://github.com/BioAIEvolu/dsh-superagent-ptc/issues)
+- **Plugin markets**: [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin), or DSH -> Settings -> Plugins -> Discover (index URL in [Install](#install))
+
+This project grew out of a real group discussion (see [Acknowledgements](#acknowledgements)); bring back your real long-task delegation stories, failures and ideas.
+
+## Friendly links
+
+- **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)**: the platform this plugin runs on.
+- **[awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)**: the curated DSH plugin directory; this plugin is listed.
+- **[DSH Go](https://github.com/ccch1mneyyy/dsh-Go)**: DSH on your phone.
+- **Sibling plugins by the same author**: [dsh-md-studio](https://github.com/BioAIEvolu/dsh-md-studio) (Markdown rendering), [dsh-token-tally](https://github.com/BioAIEvolu/dsh-token-tally) (token usage), [dsh-pane-find](https://github.com/BioAIEvolu/dsh-pane-find) (in-panel find).
+
 ## Acknowledgements
 
 This plugin did not appear from thin air. It grew out of a real group discussion and source share on 2026-11-17:
@@ -261,9 +292,18 @@ This plugin did not appear from thin air. It grew out of a real group discussion
 - **Electron** read this shape as an extension of PTC, which pushed us to state that PTC only exposes `run_code` and that supervision must sit on its native event chain.
 - **KOLA 2** proposed polling progress and releasing the next instruction plus audit on completion, and the "main router controlling workers" SuperAgent idea; these shaped Mandate unlock semantics and the Lead/Worker/Reviewer split.
 
-Thanks also to upstream `zouyuanqing/dsh-super-ptc-mode` (MIT): we referenced its thin preset composition and Lead delegation doctrine, then rewrote the persona and composition for the current DSH contract. License and provenance are preserved in [NOTICE.md](NOTICE.md).
+Thanks also to upstream [zouyuanqing/dsh-super-ptc-mode](https://github.com/zouyuanqing/dsh-super-ptc-mode) (MIT): we referenced its thin preset composition and Lead delegation doctrine, then rewrote the persona and composition for the current DSH contract. License and provenance are preserved in [NOTICE.md](NOTICE.md).
 
 And thanks to everyone who kept discussing, asking and correcting in that group — those conversations turned "evidence-gated release" from a slogan into a state machine.
+
+## Risk notice and disclaimer
+
+This plugin is a community-built third-party project. It is not affiliated with and does not represent DeepSeek. Before using it, please understand:
+
+- **Supervision is best-effort, not a sandbox**: the Worker contract, evidence gates and the read-only Reviewer constrain the state machine and the workflow, not the operating system. `run_code` and host tools can still make real file changes and run real commands; define write scopes and acceptance before delegating long tasks.
+- **Costs**: model requests are billed by your configured provider; long tasks and parallel agents amplify usage and wall-clock time.
+- **Review important results yourself**: the evidence gate proves "accepted per contract", not "correct"; keep a human in the loop for irreversible operations (deletion, publishing, outbound messages).
+- **No warranty**: the software is provided "as is" under MIT, without warranty of any kind; see [LICENSE](LICENSE).
 
 ## License
 
